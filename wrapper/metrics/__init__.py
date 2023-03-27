@@ -6,6 +6,8 @@ from .evaluation_metrics import (
     TopicInteractionMeasurement,
     MeanNumberOfTopics,
     UserMSEMeasurement,
+    CosineSim,
+    IntraClusterCosineSim,
 )
 
 from .cheney_metrics import (

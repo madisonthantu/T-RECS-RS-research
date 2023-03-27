@@ -1,3 +1,5 @@
+import sys
+sys.path.insert(1, '/Users/madisonthantu/Desktop/DREAM/t-recs')
 import trecs.matrix_ops as mo
 import scipy.spatial as sp
 import numpy as np
@@ -9,13 +11,11 @@ from numpy.random import RandomState
 
 rs = RandomState(42)
 
-
 def cosine_sim(predicted_user_profiles, predicted_item_attributes):
-    # Reranking
     alpha = globals.ALPHA
 
-    predicted_scores = mo.inner_product(predicted_user_profiles,
-                                        predicted_item_attributes)
+    # predicted_scores = np.dot(predicted_user_profiles, predicted_item_attributes) 
+    predicted_scores = mo.inner_product(predicted_user_profiles, predicted_item_attributes)
     user_norms = norm(predicted_user_profiles, axis=1)
     item_norms = norm(predicted_item_attributes, axis=0)
 
@@ -33,13 +33,33 @@ def cosine_sim(predicted_user_profiles, predicted_item_attributes):
     assert (re_ranked_scores >= 0).all(), "Some scores are negative."
     return re_ranked_scores
 
+def cosine_sim2(predicted_user_profiles, predicted_item_attributes):
+    """
+    Calculate cosine similarity for each user, item pair.
+    """
+    alpha = globals.ALPHA
+    # print(alpha)
+        
+    denominator = np.outer(np.linalg.norm(predicted_user_profiles, axis=1), np.linalg.norm(predicted_item_attributes, axis=0))
+    # cosine similarity is equal to inner product, divided by the norm of the user & item vector
+    numerator = np.dot(predicted_user_profiles, predicted_item_attributes)
+    cos_sim = numerator / denominator
+    penalty = numerator - alpha*cos_sim
+    
+    re_ranked_scores = penalty + np.abs(np.min(penalty, axis=1))[:, np.newaxis]
+
+    assert(not np.any(re_ranked_scores < 0))
+        
+    return re_ranked_scores
+
 
 def entropy(predicted_user_profiles, predicted_item_attributes):
     # Reranking
     alpha = globals.ALPHA
-
-    predicted_scores = mo.inner_product(predicted_user_profiles,
-                                        predicted_item_attributes)
+    
+    predicted_scores = np.dot(predicted_user_profiles, predicted_item_attributes) 
+    # predicted_scores = mo.inner_product(predicted_user_profiles,
+    #                                     predicted_item_attributes)
     if np.sum(predicted_scores) == 0:
         return predicted_scores
 
@@ -90,8 +110,9 @@ def content_fairness(predicted_user_profiles, predicted_item_attributes):
     upper_bound = 0.75
 
     # 1. Calculate myopic scores
-    predicted_scores = mo.inner_product(predicted_user_profiles,
-                                        predicted_item_attributes)
+    # predicted_scores = mo.inner_product(predicted_user_profiles,
+    #                                     predicted_item_attributes)
+    predicted_scores = np.dot(predicted_user_profiles, predicted_item_attributes) 
 
 
     return predicted_scores
@@ -110,18 +131,19 @@ def top_k_reranking(predicted_user_profiles, predicted_item_attributes):
         - predicted_scores_reranked (Shape: U x I)
     """
     k = 10
-
-    pred_scores = mo.inner_product(predicted_user_profiles,
-                                   predicted_item_attributes)
-    top_k_idxs = mo.top_k_indices(matrix=pred_scores, k=k, random_state=rs)
+    
+    predicted_scores = np.dot(predicted_user_profiles, predicted_item_attributes) 
+    # pred_scores = mo.inner_product(predicted_user_profiles,
+    #                                predicted_item_attributes)
+    top_k_idxs = mo.top_k_indices(matrix=predicted_scores, k=k, random_state=rs)
 
     top_k_re_ranked_idxs = top_k_idxs[:, -1::-1]
-    top_k_re_ranked_scores = np.take_along_axis(pred_scores,
+    top_k_re_ranked_scores = np.take_along_axis(predicted_scores,
                                                 top_k_idxs,
                                                 axis=1)
     top_k_re_ranked_scores = top_k_re_ranked_scores[:, -1::-1]
 
-    re_ranked_scores = np.copy(pred_scores)
+    re_ranked_scores = np.copy(predicted_scores)
     np.put_along_axis(re_ranked_scores,
                       top_k_idxs,
                       top_k_re_ranked_scores,

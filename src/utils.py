@@ -30,7 +30,7 @@ def get_clusters(embeddings, name, n_clusters:int=25, n_attrs:int=20, max_iter:i
     """
     # Create topic clusters
     #create co-occurence matrix from binary_interaction_matrix
-    file_path = f'artefacts/topic_clusters/{name}_clusters_{n_clusters}clusters_{n_attrs}attributes_{max_iter}iters.pkl'
+    file_path = f'/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research/artefacts/topic_clusters/{name}_clusters_{n_clusters}clusters_{n_attrs}attributes_{max_iter}iters.pkl'
     if not os.path.exists(file_path):
         print('Calculating clusters...')
 
@@ -60,8 +60,8 @@ def create_embeddings(binary_matrix, n_attrs:int=100, max_iter:int=100):
         user_representation: a matrix of user embeddings
         item_representation: a matrix of item embeddings
     """
-    user_representation_file_path = f'artefacts/representations/ml_user_representations_{n_attrs}attributes_{max_iter}iters.npy'
-    item_representation_file_path = f'artefacts/representations/ml_item_representations_{n_attrs}attributes_{max_iter}iters.npy'
+    user_representation_file_path = f'/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research/artefacts/representations/ml_user_representations_{n_attrs}attributes_{max_iter}iters.npy'
+    item_representation_file_path = f'/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research/artefacts/representations/ml_item_representations_{n_attrs}attributes_{max_iter}iters.npy'
     if not os.path.exists(user_representation_file_path) or not os.path.exists(item_representation_file_path):
         print('Calculating embeddings...')
         nmf = NMF(n_components=n_attrs, init='random', random_state=random_state, max_iter=max_iter)
@@ -182,13 +182,13 @@ def create_cluster_user_pairs(user_cluster_ids):
     num_users = len(user_cluster_ids)
     
     for u_idx in range(num_users):
-        for v_idx in range(num_users):
+        for v_idx in range(u_idx+1, num_users):
             if user_cluster_ids[u_idx] != user_cluster_ids[v_idx]:
                 inter_cluster_user_pairs.append((u_idx, v_idx))
     
     intra_cluster_user_pairs = []
     for u_idx in range(num_users):
-        for v_idx in range(num_users):
+        for v_idx in range(u_idx+1, num_users):
             if user_cluster_ids[u_idx] == user_cluster_ids[v_idx]:
                 intra_cluster_user_pairs.append((u_idx, v_idx))
 
