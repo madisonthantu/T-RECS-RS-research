@@ -8,6 +8,7 @@ from .evaluation_metrics import (
     UserMSEMeasurement,
     CosineSim,
     IntraClusterCosineSim,
+    MeanDistanceFromCentroid,
 )
 
 from .cheney_metrics import (

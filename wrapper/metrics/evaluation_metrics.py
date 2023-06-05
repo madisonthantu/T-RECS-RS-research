@@ -335,15 +335,13 @@ class CosineSim(Measurement):
         self.observe(cos_sim)
 
 class IntraClusterCosineSim(Measurement):
-    def __init__(self, user_topic_mapping, n_clusters=25, name="MeanCosSim_UserCluster", verbose=False):
-        self.mapping = user_topic_mapping
+    def __init__(self, mapping, n_clusters=25, name="MeanCosSim_UserCluster", verbose=False):
+        self.mapping = mapping
         self.n_clusts = n_clusters
         Measurement.__init__(self, name, verbose)
         
     def measure(self, recommender):
-    # def MeanCosSim_UserCluster(user_item_cluster_mapping, user_embedding, num_clusters=25):
         clusters = np.unique(self.mapping)
-        # intra_cluster_sim = np.hstack((np.arange(self.n_clusts).reshape(self.n_clusts,1),  np.zeros((self.n_clusts,1))))
         intra_cluster_sim = np.zeros((self.n_clusts, 1))
         for clust in clusters:
             clust_users = np.where(self.mapping == clust)
@@ -355,3 +353,38 @@ class IntraClusterCosineSim(Measurement):
                 num_user_pairs = comb(clust_users_embed.shape[0], 2)
                 intra_cluster_sim[clust] = np.sum(np.triu(cos_sim)) / num_user_pairs
         self.observe(intra_cluster_sim)
+
+class MeanDistanceFromCentroid(Measurement):
+    def __init__(self, user_cluster_ids, user_centroids, name="mean_distance_from_centroid", verbose=False):
+        self.user_cluster_ids = user_cluster_ids
+        self.user_centroids = user_centroids
+        Measurement.__init__(self, name, verbose)
+        
+    def measure(self, recommender):
+    
+        clusters = np.unique(self.user_cluster_ids)
+        avg_clust_dist = np.zeros((self.user_centroids.shape[0], ))
+        for clust in clusters:
+            clust_users = np.where(self.user_cluster_ids == clust)[0]
+            clust_users_embed = recommender.users.actual_user_profiles.value[clust_users,:]
+            dist = np.linalg.norm(self.user_centroids[clust] - clust_users_embed, axis=1)
+            avg_clust_dist[clust] = np.mean(dist)
+        self.observe(avg_clust_dist)
+        
+
+class SdWithinCluster(Measurement):
+    def __init__(self, user_cluster_ids, user_centroids, name="sd_per_clusters", verbose=False):
+        self.user_cluster_ids = user_cluster_ids
+        self.user_centroids = user_centroids
+        Measurement.__init__(self, name, verbose)
+        
+    def measure(self, recommender):
+    
+        clusters = np.unique(self.user_cluster_ids)
+        sigmas = np.zeros((self.user_centroids.shape[0], 1))
+        for clust in clusters:
+            clust_users = np.where(self.user_cluster_ids == clust)[0]
+            clust_users_embed = recommender.users.actual_user_profiles.value[clust_users,:]
+            dist = np.linalg.norm(self.user_centroids[clust] - clust_users_embed, axis=1)
+            avg_clust_dist[clust] = np.mean(dist)
+        self.observe(avg_clust_dist)
