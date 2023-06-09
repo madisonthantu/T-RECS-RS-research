@@ -1,0 +1,10 @@
+{'attention_exp': -0.8,
+ 'max_iter': 1000,
+ 'num_attrs': 20,
+ 'num_clusters': 10,
+ 'num_sims': 3,
+ 'output_dir': 'param_exp_results/single_training',
+ 'repeated_training': False,
+ 'seed': None,
+ 'sim_iters': 50,
+ 'startup_iters': 10}

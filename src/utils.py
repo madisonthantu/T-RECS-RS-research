@@ -48,6 +48,23 @@ def get_clusters(embeddings, name, n_clusters:int=25, n_attrs:int=20, max_iter:i
     return cluster_ids, centroids
 
 
+def compute_clusters(embeddings, name, n_clusters:int=25, n_attrs:int=20, max_iter:int=100):
+    """
+    Creates clusters of movies based on their genre.
+    Inputs:
+        embeddings: Matrix of embeddings, e.g. user representation
+        n_attrs: number of attributes to use in NMF
+        nmf_solver: solver to use in NMF
+    Outputs:
+        clusters: a list of cluster assignments
+    """
+    print('Calculating clusters...')
+    kmeans = KMeans(n_clusters=n_clusters, max_iter=max_iter, random_state=random_state).fit(embeddings)
+    print('Calculated clusters.')
+    cluster_ids = kmeans.predict(embeddings)
+    centroids = kmeans.cluster_centers_
+    return cluster_ids, centroids
+
 
 def create_embeddings(binary_matrix, n_attrs:int=100, max_iter:int=100):
     """
@@ -75,6 +92,25 @@ def create_embeddings(binary_matrix, n_attrs:int=100, max_iter:int=100):
         item_representation = np.load(item_representation_file_path)
         print('Loaded embeddings.')
 
+    return user_representation, item_representation
+
+
+def compute_embeddings(binary_matrix, n_attrs:int=100, max_iter:int=100):
+    """
+    Creates embeddings for users and items based on their interactions.
+    Inputs:
+        binary_matrix: a binary matrix of users and movies
+        n_attrs: number of attributes to use in NMF
+        max_iter: number of iteration for NMF
+    Outputs:
+        user_representation: a matrix of user embeddings
+        item_representation: a matrix of item embeddings
+    """
+    print('Calculating embeddings...')
+    nmf = NMF(n_components=n_attrs, init='random', random_state=random_state, max_iter=max_iter)
+    user_representation = nmf.fit_transform(binary_matrix)
+    item_representation = nmf.components_
+    print('Calculated embeddings.')
     return user_representation, item_representation
 
 
