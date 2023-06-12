@@ -1,3 +1,6 @@
+"""
+https://github.com/sunnymatt/t-recs-experiments/blob/8c14a311afb710199af6f2ba1e056c7ba8d5d652/algo_confounding/chaney_utils.py
+"""
 import numpy as np
 from collections import defaultdict
 import os
@@ -15,6 +18,7 @@ from scipy.optimize import nnls
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter1d
 
+
 def calculate_avg_jaccard(pairs, interactions):
     """ Calculates average Jaccard index over specified pairs of users.
     """
@@ -27,6 +31,7 @@ def calculate_avg_jaccard(pairs, interactions):
         union = len(itemset_1.union(itemset_2))
         similarity += common / union / num_pairs
     return similarity
+
 
 # Calculate homogenization by the average Euclidean distance of the interaction set
 
@@ -46,6 +51,7 @@ def avg_interaction_distance(items1, items2, item_attributes):
         total_distance += np.linalg.norm(item1 - item2)
     return total_distance / num_steps
 
+
 def distance_of_mean_items(items1, items2, item_attributes):
     """
     Returns the difference between the average vector of the items
@@ -56,6 +62,7 @@ def distance_of_mean_items(items1, items2, item_attributes):
     mean1 = item_attributes[:, items1].mean(axis=1)
     mean2 = item_attributes[:, items2].mean(axis=1)
     return np.linalg.norm(mean1 - mean2)
+
 
 def mean_item_dist_pairs(pairs, interaction_history, item_attributes):
     """
@@ -69,6 +76,7 @@ def mean_item_dist_pairs(pairs, interaction_history, item_attributes):
         itemset_2 = interaction_history[pair[1], :].flatten()
         dist += distance_of_mean_items(itemset_1, itemset_2, item_attributes) / len(pairs)
     return dist
+
 
 class MeanInteractionDistance(Measurement):
     """
@@ -113,6 +121,7 @@ class MeanInteractionDistance(Measurement):
 
         avg_dist = mean_item_dist_pairs(self.pairs, self.interaction_hist, recommender.actual_item_attributes)
         self.observe(avg_dist)
+
 
 class MeanDistanceSimUsers(Measurement):
     """

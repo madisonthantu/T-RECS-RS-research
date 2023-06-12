@@ -19,7 +19,7 @@ def cosine_sim(predicted_user_profiles, predicted_item_attributes):
     user_norms = norm(predicted_user_profiles, axis=1)
     item_norms = norm(predicted_item_attributes, axis=0)
 
-    # create a matrix that contains the outer product af user_norms and item_norms
+    # create a matrix that contains the outer product of user_norms and item_norms
     norms = np.outer(user_norms, item_norms)
     if (norms == 0).any():
         return predicted_scores

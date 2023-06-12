@@ -118,3 +118,19 @@ def graph_metrics_by_axis(ax, train_results, metric_key, model_keys, label_map, 
             ax.fill_between(timesteps, low, high, color = line_color, alpha=0.3)
     ax.legend(facecolor='white', framealpha=1, loc='upper right', bbox_to_anchor=(1, 0.5))
     return ax
+
+
+def transform_relative_to_global(train_results, global_metric_key, metric_key, model_keys, absolute_measure=True):
+    proprtional_dist = defaultdict(lambda: defaultdict(list))
+    
+    for model_key in model_keys:
+        global_dist = np.array(train_results[global_metric_key][model_key])
+        metric_dist = np.array(train_results[metric_key][model_key])
+        proprtional_dist[metric_key][model_key] = np.divide(metric_dist, global_dist)
+        
+    return proprtional_dist
+
+
+def graph_relative_to_global_by_axis(ax, train_results, global_metric_key, metric_key, model_keys, label_map, absolute_measure=True, mean_sigma=0, mult_sd=0, conf_sigma=0):
+    relative_dist = transform_relative_to_global(train_results, global_metric_key, metric_key, model_keys, absolute_measure)
+    graph_metrics_by_axis(ax, relative_dist, metric_key, model_keys, label_map, mean_sigma, mult_sd, conf_sigma)

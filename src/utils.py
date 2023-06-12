@@ -11,6 +11,8 @@ import os
 import pickle
 import trecs.matrix_ops as mo
 import matplotlib.pyplot as plt
+from k_means_constrained import KMeansConstrained
+
 import src.globals as globals
 from warnings import simplefilter
 # ignore all future warnings
@@ -63,6 +65,21 @@ def compute_clusters(embeddings, name, n_clusters:int=25, n_attrs:int=20, max_it
     print('Calculated clusters.')
     cluster_ids = kmeans.predict(embeddings)
     centroids = kmeans.cluster_centers_
+    return cluster_ids, centroids
+
+
+def compute_constrained_clusters(embeddings, name, n_clusters:int=25):
+    # Define topic clusters using K-Means via k-means-constrained library
+    kmeans_clf = KMeansConstrained(
+        n_clusters=n_clusters,
+        size_min=3,
+        random_state=42
+    )
+    print('Calculating constrained clusters...')
+    kmeans_clf.fit_predict(embeddings)
+    print('Calculated constrained clusters.')
+    cluster_ids, centroids = kmeans_clf.labels_, kmeans_clf.cluster_centers_
+
     return cluster_ids, centroids
 
 
@@ -229,6 +246,15 @@ def create_cluster_user_pairs(user_cluster_ids):
                 intra_cluster_user_pairs.append((u_idx, v_idx))
 
     return inter_cluster_user_pairs, intra_cluster_user_pairs
+
+
+def create_global_user_pairs(user_cluster_ids):
+    global_user_pairs = []
+    num_users = len(user_cluster_ids)
+    for u_idx in range(num_users):
+        global_user_pairs += [(u_idx, v_idx) for v_idx in range(u_idx+1, num_users)]
+
+    return global_user_pairs
 
     
 def analyze_user_mse(df_user_mse, train_timesteps=0):

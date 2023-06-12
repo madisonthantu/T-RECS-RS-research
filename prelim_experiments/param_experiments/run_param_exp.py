@@ -16,7 +16,6 @@ sys.path.insert(1, '/Users/madisonthantu/Desktop/DREAM/t-recs')
 from trecs.metrics import MSEMeasurement, InteractionSpread, InteractionSpread, InteractionSimilarity, RecSimilarity, RMSEMeasurement, InteractionMeasurement
 from trecs.components import Users
 import trecs.matrix_ops as mo
-from trecs.models import ContentFiltering
 
 from chaney_utils import *
 
