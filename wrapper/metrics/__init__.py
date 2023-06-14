@@ -6,12 +6,15 @@ from .evaluation_metrics import (
     TopicInteractionMeasurement,
     MeanNumberOfTopics,
     UserMSEMeasurement,
-    CosineSim,
-    IntraClusterCosineSim,
-    MeanDistanceFromCentroid,
 )
 
 from .cheney_metrics import (
     MeanInteractionDistance, 
     MeanDistanceSimUsers,
 )
+
+from .clustering_metrics import * 
+# (
+#     MeanInteractionDistance, 
+#     MeanDistanceSimUsers,
+# )

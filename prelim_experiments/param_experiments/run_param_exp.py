@@ -22,7 +22,8 @@ from chaney_utils import *
 sys.path.insert(1, '../')
 from wrapper.models.bubble import BubbleBurster
 from wrapper.metrics.evaluation_metrics import *
-from src.utils import load_and_process_movielens, compute_embeddings, compute_clusters, user_topic_mapping, create_cluster_user_pairs
+from wrapper.metrics.clustering_metrics import MeanCosineSim, MeanDistanceFromCentroid, MeanCosineSimPerCluster, MeanDistanceFromCentroidPerCluster
+from src.utils import load_and_process_movielens, compute_embeddings, user_topic_mapping, create_cluster_user_pairs, compute_constrained_clusters
 
 random_state = np.random.seed(42)
 
@@ -34,7 +35,8 @@ import pickle as pkl
 warnings.simplefilter("ignore")
 
 
-def run_bubble_burster(user_representation, item_representation, item_cluster_ids, drift, attention_exp, retrain, global_user_pairs, inter_cluster_user_pairs, intra_cluster_user_pairs, args, rng):
+def run_bubble_burster(user_representation, item_representation, item_cluster_ids, user_cluster_ids, user_cluster_centers, global_user_cluster_ids, global_user_cluster_centers, drift, attention_exp, retrain, global_user_pairs, inter_cluster_user_pairs, intra_cluster_user_pairs, args, rng):
+    
     users = Users(
         actual_user_profiles=user_representation, 
         repeat_interactions=False,
@@ -47,6 +49,15 @@ def run_bubble_burster(user_representation, item_representation, item_cluster_id
         InteractionSimilarity(pairs=global_user_pairs, name='global_interaction_similarity'), 
         InteractionSimilarity(pairs=inter_cluster_user_pairs, name='inter_cluster_interaction_similarity'), 
         InteractionSimilarity(pairs=intra_cluster_user_pairs, name='intra_cluster_interaction_similarity'), 
+        
+        MeanCosineSim(pairs=global_user_pairs, name='mean_global_cosine_sim'),
+        MeanCosineSim(pairs=intra_cluster_user_pairs, name='mean_intra_cluster_cosine_sim'),
+        MeanCosineSim(pairs=inter_cluster_user_pairs, name='mean_inter_cluster_cosine_sim'),
+        MeanCosineSimPerCluster(user_cluster_ids=user_cluster_ids, n_clusts=args["num_clusters"], name="mean_cosine_sim_per_cluster"), 
+        
+        MeanDistanceFromCentroid(user_cluster_ids=user_cluster_ids, user_centroids=user_cluster_centers, name="mean_cluster_distance_from_centroid"), 
+        MeanDistanceFromCentroid(user_cluster_ids=global_user_cluster_ids, user_centroids=global_user_cluster_centers, name="mean_global_distance_from_centroid"), 
+        MeanDistanceFromCentroidPerCluster(user_cluster_ids=user_cluster_ids, user_centroids=user_cluster_centers, n_clusts=args["num_clusters"], name="mean_distance_from_centroid_per_cluster")
     ]
     bubble = BubbleBurster(
         actual_user_representation=users, 
@@ -70,6 +81,9 @@ python run_param_exp.py --output_dir param_exp_results/repeated_training  --star
 
 python run_param_exp.py --output_dir param_exp_results/50train50run  --startup_iters 50 --sim_iters 50 --num_sims 3
 python run_param_exp.py --output_dir param_exp_results/10train90run  --startup_iters 10 --sim_iters 90 --num_sims 3
+
+python run_param_exp.py --output_dir param_exp_results/with_clustering_metrics/50train50run  --startup_iters 50 --sim_iters 50 --num_sims 3
+python run_param_exp.py --output_dir param_exp_results/with_clustering_metrics/10train90run  --startup_iters 10 --sim_iters 90 --num_sims 3
 """
 if __name__ == "__main__":
     # parse arguments
@@ -119,8 +133,9 @@ if __name__ == "__main__":
         # Get user and item representations using NMF
         user_representation, item_representation = compute_embeddings(binary_ratings_matrix, n_attrs=args["num_attrs"], max_iter=args["max_iter"])
         # Define topic clusters using NMF
-        item_cluster_ids, item_cluster_centers = compute_clusters(item_representation.T, name='item', n_clusters=args["num_clusters"], n_attrs=args["num_attrs"], max_iter=args["max_iter"])
-        user_cluster_ids, user_cluster_centers = compute_clusters(user_representation, name='user', n_clusters=args["num_clusters"], n_attrs=args["num_attrs"], max_iter=args["max_iter"])
+        item_cluster_ids, item_cluster_centers = compute_constrained_clusters(item_representation.T, name='item_clusters', n_clusters=args["num_clusters"], n_attrs=args["num_attrs"], max_iter=args["max_iter"])
+        user_cluster_ids, user_cluster_centers = compute_constrained_clusters(user_representation, name='user_clusters', n_clusters=args["num_clusters"], n_attrs=args["num_attrs"], max_iter=args["max_iter"])
+        global_user_cluster_ids, global_user_cluster_centers = compute_constrained_clusters(user_representation, name='global_user_clusters', n_clusters=1)
         # Get user pairs - global user pairs, intra-cluster user pairs, inter-cluster user pairs
         global_user_pairs = []
         num_users = len(user_cluster_ids)
@@ -135,6 +150,10 @@ if __name__ == "__main__":
                 user_representation=user_representation, 
                 item_representation=item_representation, 
                 item_cluster_ids=item_cluster_ids, 
+                user_cluster_ids=user_cluster_ids,
+                user_cluster_centers=user_cluster_centers,
+                global_user_cluster_ids=global_user_cluster_ids, 
+                global_user_cluster_centers=global_user_cluster_centers,
                 drift=drift,
                 attention_exp=attention_exp,
                 retrain=retrain,
