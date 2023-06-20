@@ -96,7 +96,7 @@ def graph_relative_to_ideal(train_results, metric_key, model_keys, label_map, ab
     graph_metrics(relative_dist, metric_key, model_keys, label_map, mean_sigma, mult_sd, conf_sigma)
     
     
-def graph_metrics_by_axis(ax, train_results, metric_key, model_keys, label_map, mean_sigma=0, mult_sd=0, conf_sigma=0):
+def graph_metrics_by_axis(ax, train_results, metric_key, model_keys, label_map, mean_sigma=0, mult_sd=0, conf_sigma=0, graph_by="params"):
     for m in model_keys:
         if not isinstance(train_results[metric_key][m], np.ndarray):
             train_results[metric_key][m] = np.array(train_results[metric_key][m])
@@ -105,7 +105,13 @@ def graph_metrics_by_axis(ax, train_results, metric_key, model_keys, label_map, 
             values = gaussian_filter1d(train_results[metric_key][m].mean(axis=0), sigma=mean_sigma)
         else:
             values = train_results[metric_key][m].mean(axis=0)
-        line = ax.plot(values, label=label_map[m])
+        if graph_by == "params":
+            line_label = label_map[m]
+        elif graph_by == "metric":
+            line_label = metric_key
+        else:
+            raise Exception("Must graph by either params or metric")
+        line = ax.plot(values, label=line_label)
         line_color = line[0].get_color()
         if mult_sd > 0:
             std = train_results[metric_key][m].std(axis=0)
@@ -131,6 +137,38 @@ def transform_relative_to_global(train_results, global_metric_key, metric_key, m
     return proprtional_dist
 
 
-def graph_relative_to_global_by_axis(ax, train_results, global_metric_key, metric_key, model_keys, label_map, absolute_measure=True, mean_sigma=0, mult_sd=0, conf_sigma=0):
+def graph_relative_to_global_by_axis(ax, train_results, global_metric_key, metric_key, model_keys, label_map, absolute_measure=True, mean_sigma=0, mult_sd=0, conf_sigma=0, graph_by="params"):
     relative_dist = transform_relative_to_global(train_results, global_metric_key, metric_key, model_keys, absolute_measure)
-    graph_metrics_by_axis(ax, relative_dist, metric_key, model_keys, label_map, mean_sigma, mult_sd, conf_sigma)
+    graph_metrics_by_axis(ax, relative_dist, metric_key, model_keys, label_map, mean_sigma, mult_sd, conf_sigma, graph_by)
+    
+    
+# def graph_n_metrics_by_axis(ax, train_results, metric_keys, model_keys, label_map, mean_sigma=0, mult_sd=0, conf_sigma=0):
+#     for metric_key in metric_keys:
+#         for m in model_keys:
+#             if not isinstance(train_results[metric_key][m], np.ndarray):
+#                 train_results[metric_key][m] = np.array(train_results[metric_key][m])
+#             # average across trials and smooth, if necessary
+#             if mean_sigma > 0:
+#                 values = gaussian_filter1d(train_results[metric_key][m].mean(axis=0), sigma=mean_sigma)
+#             else:
+#                 values = train_results[metric_key][m].mean(axis=0)
+#             line = ax.plot(values, label=label_map[m])
+#             line_color = line[0].get_color()
+#             if mult_sd > 0:
+#                 std = train_results[metric_key][m].std(axis=0)
+#                 timesteps = np.arange(len(std))
+#                 low = values - mult_sd * std
+#                 high = values + mult_sd * std
+#                 if conf_sigma > 0:
+#                     low = gaussian_filter1d(low, sigma=conf_sigma)
+#                     high = gaussian_filter1d(high, sigma=conf_sigma)
+#                 ax.fill_between(timesteps, low, high, color = line_color, alpha=0.3)
+#     ax.legend(facecolor='white', framealpha=1, loc='upper right', bbox_to_anchor=(1, 0.5))
+#     return ax
+
+
+# def graph_n_relative_to_global_by_axis(ax, train_results, global_metric_key, metric_keys, model_keys, label_map, absolute_measure=True, mean_sigma=0, mult_sd=0, conf_sigma=0):
+#     relative_dists = dict()
+#     for metric in metric_keys:
+#         relative_dists[metric] = transform_relative_to_global(train_results, global_metric_key, metric, model_keys, absolute_measure)
+#     graph_n_metrics_by_axis(ax, relative_dists, metric_keys, model_keys, label_map, mean_sigma, mult_sd, conf_sigma)

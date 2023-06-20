@@ -19,11 +19,11 @@ import trecs.matrix_ops as mo
 
 from chaney_utils import *
 
-sys.path.insert(1, '../')
+sys.path.insert(1, '/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research')
 from wrapper.models.bubble import BubbleBurster
 from wrapper.metrics.evaluation_metrics import *
 from wrapper.metrics.clustering_metrics import MeanCosineSim, MeanDistanceFromCentroid, MeanCosineSimPerCluster, MeanDistanceFromCentroidPerCluster
-from src.utils import load_and_process_movielens, compute_embeddings, user_topic_mapping, create_cluster_user_pairs, compute_constrained_clusters
+from src.utils import load_and_process_movielens, compute_embeddings, user_topic_mapping, create_cluster_user_pairs, compute_constrained_clusters, create_global_user_pairs
 
 random_state = np.random.seed(42)
 
@@ -121,7 +121,20 @@ if __name__ == "__main__":
     hyper_params = {"drift":[0.0, 0.05, 0.1], "attention_exp":[0, -0.8], "repeated_training":[0,1]}
     models = dict([(f"{p[0]}drift_{p[1]}attention_{p[2]}retraining", p) for p in itertools.product(*hyper_params.values())])
     
-    metric_list = ["mse", "interaction_spread", "global_interaction_similarity", "inter_cluster_interaction_similarity", "intra_cluster_interaction_similarity"]
+    metric_list = [
+        "mse", 
+        "interaction_spread", 
+        "global_interaction_similarity", 
+        "inter_cluster_interaction_similarity", 
+        "intra_cluster_interaction_similarity", 
+        "mean_global_cosine_sim", 
+        "mean_intra_cluster_cosine_sim", 
+        "mean_inter_cluster_cosine_sim", 
+        "mean_cosine_sim_per_cluster", 
+        "mean_cluster_distance_from_centroid", 
+        "mean_global_distance_from_centroid", 
+        "mean_distance_from_centroid_per_cluster"
+    ]
     result_metrics = {k: defaultdict(list) for k in metric_list}
     
     binary_ratings_matrix = load_and_process_movielens(file_path='/Users/madisonthantu/Desktop/DREAM/data/ml-100k/u.data')
@@ -133,14 +146,11 @@ if __name__ == "__main__":
         # Get user and item representations using NMF
         user_representation, item_representation = compute_embeddings(binary_ratings_matrix, n_attrs=args["num_attrs"], max_iter=args["max_iter"])
         # Define topic clusters using NMF
-        item_cluster_ids, item_cluster_centers = compute_constrained_clusters(item_representation.T, name='item_clusters', n_clusters=args["num_clusters"], n_attrs=args["num_attrs"], max_iter=args["max_iter"])
-        user_cluster_ids, user_cluster_centers = compute_constrained_clusters(user_representation, name='user_clusters', n_clusters=args["num_clusters"], n_attrs=args["num_attrs"], max_iter=args["max_iter"])
+        item_cluster_ids, item_cluster_centers = compute_constrained_clusters(item_representation.T, name='item_clusters', n_clusters=args["num_clusters"])
+        user_cluster_ids, user_cluster_centers = compute_constrained_clusters(user_representation, name='user_clusters', n_clusters=args["num_clusters"])
         global_user_cluster_ids, global_user_cluster_centers = compute_constrained_clusters(user_representation, name='global_user_clusters', n_clusters=1)
         # Get user pairs - global user pairs, intra-cluster user pairs, inter-cluster user pairs
-        global_user_pairs = []
-        num_users = len(user_cluster_ids)
-        for u_idx in range(num_users):
-            global_user_pairs += [(u_idx, v_idx) for v_idx in range(u_idx+1, num_users)]
+        global_user_pairs = create_global_user_pairs(user_cluster_ids)
         inter_cluster_user_pairs, intra_cluster_user_pairs = create_cluster_user_pairs(user_cluster_ids)
         
         for params in models:
