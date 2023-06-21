@@ -60,9 +60,9 @@ def compute_clusters(embeddings, name, n_clusters:int=25, n_attrs:int=20, max_it
     Outputs:
         clusters: a list of cluster assignments
     """
-    print('Calculating clusters...')
+    print('Calculating clusters ...')
     kmeans = KMeans(n_clusters=n_clusters, max_iter=max_iter, random_state=random_state).fit(embeddings)
-    print('Calculated clusters.')
+    print('... Calculated clusters.')
     cluster_ids = kmeans.predict(embeddings)
     centroids = kmeans.cluster_centers_
     return cluster_ids, centroids
@@ -75,9 +75,9 @@ def compute_constrained_clusters(embeddings, name, n_clusters:int=25):
         size_min=3,
         random_state=42
     )
-    print('Calculating constrained clusters...')
+    print('Calculating constrained clusters ...')
     kmeans_clf.fit_predict(embeddings)
-    print('Calculated constrained clusters.')
+    print('... Calculated constrained clusters.')
     cluster_ids, centroids = kmeans_clf.labels_, kmeans_clf.cluster_centers_
 
     return cluster_ids, centroids
@@ -123,11 +123,11 @@ def compute_embeddings(binary_matrix, n_attrs:int=100, max_iter:int=100):
         user_representation: a matrix of user embeddings
         item_representation: a matrix of item embeddings
     """
-    print('Calculating embeddings...')
+    print('Calculating embeddings ...')
     nmf = NMF(n_components=n_attrs, init='random', random_state=random_state, max_iter=max_iter)
     user_representation = nmf.fit_transform(binary_matrix)
     item_representation = nmf.components_
-    print('Calculated embeddings.')
+    print('... Calculated embeddings.')
     return user_representation, item_representation
 
 
@@ -140,18 +140,6 @@ def load_and_process_movielens(file_path):
     binary_ratings_matrix = binary_ratings_df.pivot(index='UserID', columns='MovieID', values='Rating').fillna(0).to_numpy()
     return binary_ratings_matrix
 
-
-def load_or_create_measurements_df(model, model_name, train_timesteps, file_path):
-    if os.path.exists(file_path):
-        df = pd.read_csv(file_path, index_col=0)
-    else:
-        measurements = model.get_measurements()
-        df = pd.DataFrame(measurements)
-        df['state'] = 'train' # makes it easier to later understand which part was training
-        df.loc[df['timesteps'] > train_timesteps, 'state'] = 'run'
-        df['model'] = model_name
-    
-    return df
 
 
 def user_topic_mapping(user_profiles, item_cluster_centers):
@@ -191,43 +179,6 @@ def user_topic_mapping(user_profiles, item_cluster_centers):
     user_to_item_cluster_assignment = np.argmin(euclidean_distance_matrix, axis=1)
     return user_to_item_cluster_assignment
 
-
-def collect_parameters(file, columns):   
-    file_name = file[:-4]
-    params = file_name.split('_')
-    params_start_id = params.index('measurements')
-    row = {}
-    row['model_name'] = '_'.join(params[:params_start_id])
-    for col in columns:
-        for param in params:
-            if param.endswith(col):
-                value = param[:param.find(col)]
-                row[col] = value
-    return row
-
-
-def load_measurements(path, numeric_columns):
-    dfs = []
-    data = []
-    columns = ['model_name'] + numeric_columns
-    
-    for file in os.listdir(path):
-        if file.endswith('.csv'):
-            row = collect_parameters(file, columns)
-            data.append(row)
-            df = pd.read_csv(path + '/' + file)
-            dfs.append(df)
-    
-    parameters_df = pd.DataFrame().append(data)
-    for col in numeric_columns:
-        parameters_df[col] = pd.to_numeric(parameters_df[col])
-    return dfs, parameters_df
-
-
-def create_parameter_string(naming_config):
-    parameters_str = ''
-    for key, value in naming_config.items():
-        parameters_str += f'_{value}{key}'
 
         
 def create_cluster_user_pairs(user_cluster_ids):

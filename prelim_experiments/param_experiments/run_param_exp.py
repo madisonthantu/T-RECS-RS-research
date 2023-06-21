@@ -84,6 +84,9 @@ python run_param_exp.py --output_dir param_exp_results/10train90run  --startup_i
 
 python run_param_exp.py --output_dir param_exp_results/with_clustering_metrics/50train50run  --startup_iters 50 --sim_iters 50 --num_sims 3
 python run_param_exp.py --output_dir param_exp_results/with_clustering_metrics/10train90run  --startup_iters 10 --sim_iters 90 --num_sims 3
+
+python run_param_exp.py --output_dir param_exp_results/create_cluster_user_pairs_by_user_topic_mapping/50train50run  --startup_iters 50 --sim_iters 50 --num_sims 3 --create_cluster_user_pairs_by_user_topic_mapping 1
+python run_param_exp.py --output_dir param_exp_results/create_cluster_user_pairs_by_user_topic_mapping/10train90run  --startup_iters 10 --sim_iters 90 --num_sims 3 --create_cluster_user_pairs_by_user_topic_mapping 1
 """
 if __name__ == "__main__":
     # parse arguments
@@ -99,10 +102,16 @@ if __name__ == "__main__":
     parser.add_argument('--single_training', dest='repeated_training', action='store_false')
     parser.add_argument('--attention_exp', type=float, default=-0.8)
     parser.add_argument('--max_iter', type=int, default=1000)
+    parser.add_argument('--create_cluster_user_pairs_by_user_topic_mapping', type=bool, default=False)
 
     parsed_args = parser.parse_args()
     args = vars(parsed_args)
-
+    
+    if os.path.isdir(args["output_dir"]):
+        print("The supplied output directory already exists. Do you wish to overwrite this directory's contents? [y/n]: ")
+        if str(input()).lower() != "y":
+            sys.exit()
+        
     print("Creating experiment output folder... 💻")
     # create output folder
     try:
@@ -137,6 +146,20 @@ if __name__ == "__main__":
     ]
     result_metrics = {k: defaultdict(list) for k in metric_list}
     
+    sim_environment_variables = [
+        "actual_user_representation_initial",
+        "actual_user_representation_final",
+        "user_cluster_assignments",
+        "user_cluster_centroids",
+        "item_representation",
+        "item_cluster_assignments",
+        "item_cluster_centroids",
+        "global_user_centroid"
+    ]
+    if args["create_cluster_user_pairs_by_user_topic_mapping"]:
+        sim_environment_variables.append("user_item_cluster_mapping")
+    sim_environment = {k: defaultdict(list) for k in sim_environment_variables}
+    
     binary_ratings_matrix = load_and_process_movielens(file_path='/Users/madisonthantu/Desktop/DREAM/data/ml-100k/u.data')
 
     print("Running simulations...👟")
@@ -151,7 +174,11 @@ if __name__ == "__main__":
         global_user_cluster_ids, global_user_cluster_centers = compute_constrained_clusters(user_representation, name='global_user_clusters', n_clusters=1)
         # Get user pairs - global user pairs, intra-cluster user pairs, inter-cluster user pairs
         global_user_pairs = create_global_user_pairs(user_cluster_ids)
-        inter_cluster_user_pairs, intra_cluster_user_pairs = create_cluster_user_pairs(user_cluster_ids)
+        if args["create_cluster_user_pairs_by_user_topic_mapping"]:
+            user_item_cluster_mapping = user_topic_mapping(user_representation, item_cluster_centers) # TODO: Remove?
+            inter_cluster_user_pairs, intra_cluster_user_pairs = create_cluster_user_pairs(user_item_cluster_mapping)
+        else:
+            inter_cluster_user_pairs, intra_cluster_user_pairs = create_cluster_user_pairs(user_cluster_ids)
         
         for params in models:
             print(params)
@@ -173,10 +200,24 @@ if __name__ == "__main__":
                 args=args,
                 rng=rng
             )
+            # Saving final metrics
             for metric in metric_list:
                 result_metrics[metric][params].append(process_measurement(model, metric))
+            # Saving simulation environment variables
+            sim_environment["actual_user_representation_initial"][params].append(user_representation)
+            sim_environment["actual_user_representation_final"][params].append(model.users.actual_user_profiles.value)
+            sim_environment["user_cluster_assignments"][params].append(user_cluster_ids)
+            sim_environment["user_cluster_centroids"][params].append(user_cluster_ids)
+            sim_environment["item_representation"][params].append(item_representation)
+            sim_environment["item_cluster_assignments"][params].append(item_cluster_ids)
+            sim_environment["item_cluster_centroids"][params].append(item_cluster_centers)
+            sim_environment["global_user_centroid"][params].append(global_user_cluster_centers)
+            if args["create_cluster_user_pairs_by_user_topic_mapping"]:
+                sim_environment["user_item_cluster_mapping"][params].append(user_item_cluster_mapping)
         
     # write results to pickle file
-    output_file = os.path.join(args["output_dir"], "sim_results.pkl")
-    pkl.dump(result_metrics, open(output_file, "wb"), -1)
+    output_file_metrics = os.path.join(args["output_dir"], "sim_results.pkl")
+    pkl.dump(result_metrics, open(output_file_metrics, "wb"), -1)
+    output_file_sim_env = os.path.join(args["output_dir"], "sim_environment.pkl")
+    pkl.dump(result_metrics, open(output_file_sim_env, "wb"), -1)
     print("Done with simulation! 🎉")

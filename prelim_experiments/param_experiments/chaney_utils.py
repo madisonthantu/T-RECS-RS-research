@@ -140,7 +140,33 @@ def transform_relative_to_global(train_results, global_metric_key, metric_key, m
 def graph_relative_to_global_by_axis(ax, train_results, global_metric_key, metric_key, model_keys, label_map, absolute_measure=True, mean_sigma=0, mult_sd=0, conf_sigma=0, graph_by="params"):
     relative_dist = transform_relative_to_global(train_results, global_metric_key, metric_key, model_keys, absolute_measure)
     graph_metrics_by_axis(ax, relative_dist, metric_key, model_keys, label_map, mean_sigma, mult_sd, conf_sigma, graph_by)
-    
+
+
+def graph_histogram_metric_by_axis(ax, train_results, metric_key, model_keys, label_map, mean_sigma=0, mult_sd=0, conf_sigma=0):
+    for m in model_keys:
+        assert(isinstance(train_results[metric_key][m], list)), "Histogram metric must be of type `list()`"
+        # average across trials and smooth, if necessary
+        data = np.array(train_results[metric_key][m])
+        if mean_sigma > 0:
+            values = gaussian_filter1d(data.mean(axis=0), sigma=mean_sigma)
+        else:
+            values = data.mean(axis=0)
+            
+        for i in range(values.shape[1]):
+            line = ax.plot(values[:,i], label=label_map[i])
+            line_color = line[0].get_color()
+            if mult_sd > 0:
+                std = train_results[metric_key][m].std(axis=0)
+                timesteps = np.arange(len(std))
+                low = values - mult_sd * std
+                high = values + mult_sd * std
+                if conf_sigma > 0:
+                    low = gaussian_filter1d(low, sigma=conf_sigma)
+                    high = gaussian_filter1d(high, sigma=conf_sigma)
+                ax.fill_between(timesteps, low, high, color = line_color, alpha=0.3)
+
+    ax.legend(facecolor='white', framealpha=1, loc='upper right', bbox_to_anchor=(1, 0.5))
+    return ax
     
 # def graph_n_metrics_by_axis(ax, train_results, metric_keys, model_keys, label_map, mean_sigma=0, mult_sd=0, conf_sigma=0):
 #     for metric_key in metric_keys:

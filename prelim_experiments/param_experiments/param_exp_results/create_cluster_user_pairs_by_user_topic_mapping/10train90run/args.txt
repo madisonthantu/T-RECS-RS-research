@@ -1,0 +1,11 @@
+{'attention_exp': -0.8,
+ 'create_cluster_user_pairs_by_user_topic_mapping': True,
+ 'max_iter': 1000,
+ 'num_attrs': 20,
+ 'num_clusters': 10,
+ 'num_sims': 3,
+ 'output_dir': 'param_exp_results/create_cluster_user_pairs_by_user_topic_mapping/10train90run',
+ 'repeated_training': False,
+ 'seed': None,
+ 'sim_iters': 90,
+ 'startup_iters': 10}

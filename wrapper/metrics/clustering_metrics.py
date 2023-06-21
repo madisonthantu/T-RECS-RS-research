@@ -11,19 +11,6 @@ import numpy as np
 from itertools import combinations
 
 
-# class CosineSimPerCluster(Measurement):
-#     def __init__(self, pairs, name="avg_cosine_sim", verbose=False):
-#         self.pairs = pairs
-#         self.first_user = [p[0] for p in pairs]
-#         self.second_user = [p[1] for p in pairs]
-#         Measurement.__init__(self, name, verbose)
-
-#     def measure(self, recommender):
-#         cos_sim_matrix = cosine_similarity(recommender.users.actual_user_profiles.value)
-#         inter_clust_cos_sim = cos_sim_matrix[self.first_user, self.second_user]
-        # self.observe(np.mean(inter_clust_cos_sim))
-        
-
 class MeanCosineSim(Measurement):
     def __init__(self, pairs, name="mean_cosine_sim", verbose=False):
         self.pairs = pairs
