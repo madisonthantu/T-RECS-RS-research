@@ -59,3 +59,6 @@ def create_parameter_string(naming_config):
     for key, value in naming_config.items():
         parameters_str += f'_{value}{key}'
         
+
+def process_diagnostic(metric, diagnostics_list):
+    return metric.get_diagnostics()[diagnostics_list].to_dict(orient='list')

@@ -17,11 +17,10 @@ from trecs.metrics import MSEMeasurement, InteractionSpread, InteractionSpread, 
 from trecs.components import Users
 import trecs.matrix_ops as mo
 
-from param_experiments.chaney_utils import *
-
 from surprise_utils import compute_embeddings_surprise
 
 sys.path.insert(1, '/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research')
+from prelim_experiments.param_experiments.chaney_utils import *
 from wrapper.models.bubble import BubbleBurster
 # from wrapper.metrics.evaluation_metrics import *
 from wrapper.metrics.clustering_metrics import MeanCosineSim, MeanDistanceFromCentroid, MeanCosineSimPerCluster, MeanDistanceFromCentroidPerCluster
@@ -79,6 +78,8 @@ def run_bubble_burster(user_representation, item_representation, item_cluster_id
 
     
 """
+python run_surprise_exp.py  --output_dir surprise_exp_results/50train50run  --startup_iters 50  --sim_iters 50  --num_sims 3
+python run_surprise_exp.py  --output_dir surprise_exp_results/10train90run  --startup_iters 10  --sim_iters 90  --num_sims 3
 """
 if __name__ == "__main__":
     # parse arguments
@@ -158,8 +159,8 @@ if __name__ == "__main__":
     for i in range(args["num_sims"]):
         print(f"SIMULATION {i}")
         # Get user and item representations using NMF via SURPRISE library
-        # (file_path, separator, num_attributes, num_epochs=50):
-        user_representation, item_representation = compute_embeddings_surprise('/Users/madisonthantu/Desktop/DREAM/data/ml-100k/u.data', n_attrs=args["num_attrs"], num_epochs=args["num_epochs"])
+        data_path = '/Users/madisonthantu/Desktop/DREAM/data/ml-100k/u.data'
+        user_representation, item_representation = compute_embeddings_surprise(data_path, separator="\t", num_attributes=args["num_attrs"], num_epochs=args["num_epochs"])
         # Define topic clusters using NMF
         item_cluster_ids, item_cluster_centers = compute_constrained_clusters(item_representation.T, name='item_clusters', n_clusters=args["num_clusters"])
         user_cluster_ids, user_cluster_centers = compute_constrained_clusters(user_representation, name='user_clusters', n_clusters=args["num_clusters"])
@@ -211,5 +212,5 @@ if __name__ == "__main__":
     output_file_metrics = os.path.join(args["output_dir"], "sim_results.pkl")
     pkl.dump(result_metrics, open(output_file_metrics, "wb"), -1)
     output_file_sim_env = os.path.join(args["output_dir"], "sim_environment.pkl")
-    pkl.dump(result_metrics, open(output_file_sim_env, "wb"), -1)
+    pkl.dump(sim_environment, open(output_file_sim_env, "wb"), -1)
     print("Done with simulation! 🎉")

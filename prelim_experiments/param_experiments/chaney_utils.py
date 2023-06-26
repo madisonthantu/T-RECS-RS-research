@@ -23,15 +23,16 @@ def load_sim_results(folder, filename="sim_results.pkl"):
     return pkl.load(open(filepath, "rb"))
 
 
-def merge_results(folder_paths):
+def merge_results(folder_paths, file_names):
     """
     Paths must be paths to pickle files resulting from multiple trials of the same
     simulation setup
     """
+    assert (len(folder_paths) == len(file_names)), "Must supply same number of folder paths and file names"
     final_result = defaultdict(lambda: defaultdict(list))
 
-    for folder_path in folder_paths:
-        results = load_sim_results(folder_path)
+    for idx in range(len(folder_paths)):
+        results = load_sim_results(folder_paths[idx], file_names[idx])
         # key = metric, value = dictionary mapping algo name to list of entries
         for metric_name, v in results.items():
             for model_name, metric_vals in v.items():

@@ -1,0 +1,12 @@
+{'attention_exp': -0.8,
+ 'compute_embeddings_via_surprise': True,
+ 'create_cluster_user_pairs_by_user_topic_mapping': False,
+ 'num_attrs': 20,
+ 'num_clusters': 10,
+ 'num_epochs': 50,
+ 'num_sims': 3,
+ 'output_dir': 'surprise_exp_results/50train50run',
+ 'repeated_training': False,
+ 'seed': None,
+ 'sim_iters': 50,
+ 'startup_iters': 50}

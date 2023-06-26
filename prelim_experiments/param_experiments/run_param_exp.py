@@ -70,15 +70,12 @@ def run_bubble_burster(user_representation, item_representation, item_cluster_id
     )
     bubble.add_metrics(*measurements)
     bubble.startup_and_train(timesteps=args["startup_iters"])
-    bubble.run(timesteps=args["sim_iters"], train_between_steps=args["repeated_training"])
+    bubble.run(timesteps=args["sim_iters"], train_between_steps=retrain)
     bubble.close() # end logging
     return bubble
 
     
 """
-python run_param_exp.py --output_dir param_exp_results/single_training  --startup_iters 10 --sim_iters 50 --num_sims 3 --single_training
-python run_param_exp.py --output_dir param_exp_results/repeated_training  --startup_iters 10 --sim_iters 50 --num_sims 3 --repeated_training
-
 python run_param_exp.py --output_dir param_exp_results/50train50run  --startup_iters 50 --sim_iters 50 --num_sims 3
 python run_param_exp.py --output_dir param_exp_results/10train90run  --startup_iters 10 --sim_iters 90 --num_sims 3
 
@@ -87,6 +84,8 @@ python run_param_exp.py --output_dir param_exp_results/with_clustering_metrics/1
 
 python run_param_exp.py --output_dir param_exp_results/create_cluster_user_pairs_by_user_topic_mapping/50train50run  --startup_iters 50 --sim_iters 50 --num_sims 3 --create_cluster_user_pairs_by_user_topic_mapping 1
 python run_param_exp.py --output_dir param_exp_results/create_cluster_user_pairs_by_user_topic_mapping/10train90run  --startup_iters 10 --sim_iters 90 --num_sims 3 --create_cluster_user_pairs_by_user_topic_mapping 1
+
+python run_param_exp.py --output_dir param_exp_results/corrected/10train90run  --startup_iters 10 --sim_iters 90 --num_sims 1
 """
 if __name__ == "__main__":
     # parse arguments
@@ -98,8 +97,6 @@ if __name__ == "__main__":
     parser.add_argument('--num_sims', type=int, default=5)
     parser.add_argument('--startup_iters', type=int, required=True)
     parser.add_argument('--sim_iters', type=int, required=True)
-    parser.add_argument('--repeated_training', dest='repeated_training', action='store_true')
-    parser.add_argument('--single_training', dest='repeated_training', action='store_false')
     parser.add_argument('--attention_exp', type=float, default=-0.8)
     parser.add_argument('--max_iter', type=int, default=1000)
     parser.add_argument('--create_cluster_user_pairs_by_user_topic_mapping', type=bool, default=False)
@@ -169,8 +166,8 @@ if __name__ == "__main__":
         # Get user and item representations using NMF
         user_representation, item_representation = compute_embeddings(binary_ratings_matrix, n_attrs=args["num_attrs"], max_iter=args["max_iter"])
         # Define topic clusters using NMF
-        item_cluster_ids, item_cluster_centers = compute_constrained_clusters(item_representation.T, name='item_clusters', n_clusters=args["num_clusters"])
-        user_cluster_ids, user_cluster_centers = compute_constrained_clusters(user_representation, name='user_clusters', n_clusters=args["num_clusters"])
+        item_cluster_ids, item_cluster_centers = compute_constrained_clusters(embeddings=item_representation.T, name='item_clusters', n_clusters=args["num_clusters"])
+        user_cluster_ids, user_cluster_centers = compute_constrained_clusters(embeddings=user_representation, name='user_clusters', n_clusters=args["num_clusters"])
         global_user_cluster_ids, global_user_cluster_centers = compute_constrained_clusters(user_representation, name='global_user_clusters', n_clusters=1)
         # Get user pairs - global user pairs, intra-cluster user pairs, inter-cluster user pairs
         global_user_pairs = create_global_user_pairs(user_cluster_ids)
