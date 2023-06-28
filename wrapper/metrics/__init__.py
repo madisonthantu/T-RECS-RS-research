@@ -6,6 +6,7 @@ from .evaluation_metrics import (
     TopicInteractionMeasurement,
     MeanNumberOfTopics,
     UserMSEMeasurement,
+    TopicInteractionSpread
 )
 
 from .cheney_metrics import (

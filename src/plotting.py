@@ -221,3 +221,12 @@ def plot_tsne_comparison(df1, df2, n_clusters):
 
     plt.suptitle(f'TSNE')
     plt.show()
+    
+    
+def plot_item_popularity_distribution(interaction_matrix, y_label="No. interactions", x_label="Item ID", title="Item interaction distribution", ax=None):
+    intrxn_per_item = np.sum(interaction_matrix, axis=0)
+    fig = plt.bar(np.arange(intrxn_per_item.size), intrxn_per_item)
+    plt.title(title)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    return fig

@@ -1,0 +1,7 @@
+{'max_iter': 1000,
+ 'num_epochs': 50,
+ 'num_sims': 1,
+ 'output_dir': 'prelim_exp_results/50train50run',
+ 'seed': None,
+ 'sim_iters': 50,
+ 'startup_iters': 50}

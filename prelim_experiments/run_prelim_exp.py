@@ -69,10 +69,7 @@ def run_bubble_burster(
     
 """
 python run_prelim_exp.py --output_dir prelim_exp_results/10train90run  --startup_iters 10 --sim_iters 90 --num_sims 1
-
-python -m debugpy run_prelim_exp.py --output_dir prelim_exp_results/10train90run  --startup_iters 10 --sim_iters 90 --num_sims 1
-
-/home/mgt2143/full_abalation
+python run_prelim_exp.py --output_dir prelim_exp_results/50train50run  --startup_iters 50 --sim_iters 50 --num_sims 1
 """
 if __name__ == "__main__":
     # parse arguments
@@ -109,13 +106,13 @@ if __name__ == "__main__":
     rng = np.random.default_rng(args["seed"])
     
     hyper_params = {
-        "drift":[0.0, 0.05, 0.1], 
-        "attention_exp":[0, -0.2, -0.8], 
-        "repeated_training":[0,1], 
-        "num_attrs":[10,15,20], 
-        "num_clusters":[10,15,20],
-        "compute_embeddings_via_surprise":[0,1],
-        "create_cluster_user_pairs_by_user_topic_mapping":[0,1]
+        "drift":[0.05, 0.1], 
+        "attention_exp":[-0.2, -0.8], 
+        "repeated_training":[0], 
+        "num_attrs":[15,20], 
+        "num_clusters":[15,20],
+        "compute_embeddings_via_surprise":[0],
+        "create_cluster_user_pairs_by_user_topic_mapping":[1]
     }
     # hyper_params = {
     #     "drift":[0.0], 

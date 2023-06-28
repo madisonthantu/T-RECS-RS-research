@@ -1,7 +1,7 @@
 import sys
 # caution: path[0] is reserved for script path (or '' in REPL)
 sys.path.insert(1, '/Users/madisonthantu/Desktop/DREAM/t-recs')
-from trecs.metrics import Measurement
+from trecs.metrics import Measurement, Diagnostics
 import trecs.matrix_ops as mo
 from math import comb
 
@@ -9,21 +9,61 @@ from math import comb
 import numpy as np
 from itertools import combinations
 
-class NoveltyMetric(Measurement):
-    def __init__(self, name="novelty_metric", verbose=False):
+# class NoveltyMetric(Measurement):
+#     def __init__(self, name="novelty_metric", verbose=False):
+#         Measurement.__init__(self, name, verbose)
+        
+#     def measure(self, recommender):
+#         """
+#         The purpose of this metric is to capture the global popularity-based measurements
+#         - computing the average novelty of all slates that are presented to users at the current timestep
+        
+#         This metric is based on the item diversity measure used in :
+#         Minmin Chen, Yuyan Wang, Can Xu, Ya Le, Mohit Sharma, Lee Richardson, Su-Lin Wu, and Ed Chi. 
+#         Values of user exploration in recommender systems. 
+#         In Proceedings of the 15th ACM Conference on Recommender Systems, 
+#         RecSys ’21, page 85–95, New York, NY, USA, 2021. Association for Computing Machinery.
+        
+#         Parameters
+#         ------- -----
+#             recommender: :class:`~models.recommender.BaseRecommender`
+#                 Model that inherits from
+#                 :class:`~models.recommender.BaseRecommender`.
+#         """
+#         if recommender.interactions.size == 0 or np.sum(recommender.predicted_scores.value) == 0:
+#             self.observe(None) # no interactions yet
+#             return
+                
+#         # calculate self information of each item (add eps to avoid log(0) errors)
+#         item_counts = recommender.item_count
+#         item_counts[item_counts == 0] = 1
+#         items_self_info = (-1) * np.log(item_counts)
+        
+#         # turn scores in probability distribution over items to ensure that all independent of the ranking function, the metric yields comparable values
+#         scores = recommender.predicted_scores.value
+#         probs = scores / np.sum(scores, axis=1)[:, np.newaxis]     
+        
+#         # get utility of each item given a state of users
+#         item_states = np.mean(probs, axis=0)
+        
+#         # calculate novelty per item by multiplying self information and utility value
+#         item_novelties = items_self_info * item_states
+#         # form sum over all possible items/actions
+#         item_novelty = np.sum(item_novelties)
+#         self.observe(item_novelty)
+
+class NoveltyMetric(Measurement, Diagnostics):
+    def __init__(self, name="mean_novelty", verbose=False, diagnostics=False):
+        self.diagnostics = diagnostics
         Measurement.__init__(self, name, verbose)
+        if diagnostics:
+            Diagnostics.__init__(self)
         
     def measure(self, recommender):
         """
-        The purpose of this metric is to capture the global popularity-based measurements
-        - computing the average novelty of all slates that are presented to users at the current timestep
-        
-        This metric is based on the item diversity measure used in :
-        Minmin Chen, Yuyan Wang, Can Xu, Ya Le, Mohit Sharma, Lee Richardson, Su-Lin Wu, and Ed Chi. 
-        Values of user exploration in recommender systems. 
-        In Proceedings of the 15th ACM Conference on Recommender Systems, 
-        RecSys ’21, page 85–95, New York, NY, USA, 2021. Association for Computing Machinery.
-        
+        https://www.researchgate.net/profile/Ludovik-Coba/publication/335376707_Counteracting_the_filter_bubble_in_recommender_systems_Novelty-aware_matrix_factorization/links/5d653cbea6fdccc32cd497fb/Counteracting-the-filter-bubble-in-recommender-systems-Novelty-aware-matrix-factorization.pdf
+        Counteracting the Filter Bubble in Recommender Systems: Novelty-aware Matrix Factorization
+
         Parameters
         ------- -----
             recommender: :class:`~models.recommender.BaseRecommender`
@@ -35,26 +75,16 @@ class NoveltyMetric(Measurement):
             return
                 
         # calculate self information of each item (add eps to avoid log(0) errors)
-        item_counts = recommender.item_count
-        item_counts[item_counts == 0] = 1
-        items_self_info = (-1) * np.log(item_counts)
+        item_counts = recommender.item_count + 0.1
+        novelty = (-1) * np.log(item_counts / recommender.num_users)
         
-        # turn scores in probability distribution over items to ensure that all independent of the ranking function, the metric yields comparable values
-        scores = recommender.predicted_scores.value
-        probs = scores / np.sum(scores, axis=1)[:, np.newaxis]     
-        
-        # get utility of each item given a state of users
-        item_states = np.mean(probs, axis=0)
-        
-        # calculate novelty per item by multiplying self information and utility value
-        item_novelties = items_self_info * item_states
-        # form sum over all possible items/actions
-        item_novelty = np.sum(item_novelties)
-        self.observe(item_novelty)
+        self.observe(novelty)
+        if self.diagnostics:
+            self.diagnose(novelty)
         
 
 class SerendipityMetric(Measurement):
-    def __init__(self, name="serendipity_metric", verbose=False):
+    def __init__(self, name="serendipity", verbose=False):
         Measurement.__init__(self, name, verbose)
         
     def measure(self, recommender):
@@ -94,7 +124,7 @@ class SerendipityMetric(Measurement):
        
         
 class DiversityMetric(Measurement):
-    def __init__(self, name="diversity_metric", verbose=False):
+    def __init__(self, name="diversity", verbose=False):
         Measurement.__init__(self, name, verbose)
         
     def measure(self, recommender):
@@ -206,6 +236,27 @@ class TopicInteractionMeasurement(Measurement): # TODO: Make this work
             recommender.topic_interactions, recommender.num_users, recommender.num_topics
         )
         self.observe(histogram, copy=True)
+        
+        
+class TopicInteractionSpread(TopicInteractionMeasurement):
+    def __init__(self, verbose=False):
+        self.histogram = None
+        self._old_histogram = None
+        TopicInteractionMeasurement.__init__(self, name="topic_interaction_spread", verbose=verbose)
+
+    def measure(self, recommender):
+        if recommender.interactions.size == 0:  # initially, there are no interactions
+            self.observe(None)
+            return
+        histogram = self._generate_interaction_histogram(
+            recommender.topic_interactions, recommender.num_users, recommender.num_topics
+        )
+        histogram[::-1].sort()
+        if self._old_histogram is None:
+            self._old_histogram = np.zeros(recommender.num_topics)
+        self.observe(np.trapz(self._old_histogram, dx=1) - np.trapz(histogram, dx=1), copy=False)
+        self._old_histogram = np.copy(histogram)
+        self.histogram = histogram
 
 
 class MeanNumberOfTopics(Measurement):

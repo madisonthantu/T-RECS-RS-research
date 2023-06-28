@@ -127,6 +127,19 @@ def graph_metrics_by_axis(ax, train_results, metric_key, model_keys, label_map, 
     return ax
 
 
+def graph_averaged_metric_by_axis(ax, train_results, metric_key, model_keys, label_map, mean_sigma=0, mult_sd=0, conf_sigma=0, graph_by="params"):
+    mean_values = None
+    for m in model_keys:
+        if not isinstance(train_results[metric_key][m], np.ndarray):
+            train_results[metric_key][m] = np.array(train_results[metric_key][m])
+        if mean_values is None:
+            mean_values = train_results[metric_key][m]
+        else:
+            mean_values = np.vstack((mean_values, train_results[metric_key][m]))
+    ax.plot(mean_values.mean(axis=0))
+    return ax
+
+
 def transform_relative_to_global(train_results, global_metric_key, metric_key, model_keys, absolute_measure=True):
     proprtional_dist = defaultdict(lambda: defaultdict(list))
     
