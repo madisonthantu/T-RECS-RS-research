@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 import sys
 sys.path.insert(1, '/Users/madisonthantu/Desktop/DREAM/t-recs')
-from trecs.metrics import MSEMeasurement, InteractionSpread, InteractionSpread, InteractionSimilarity, RecSimilarity, RMSEMeasurement, InteractionMeasurement
+from trecs.metrics import MSEMeasurement, InteractionSpread, InteractionSpread, InteractionSimilarity, RMSEMeasurement, InteractionMeasurement
 from trecs.components import Users
 import trecs.matrix_ops as mo
 
@@ -22,7 +22,7 @@ from representation_experiments.surprise_utils import compute_embeddings_surpris
 sys.path.insert(1, '/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research')
 from prelim_experiments.param_experiments.chaney_utils import *
 from wrapper.models.bubble import BubbleBurster
-from wrapper.metrics.evaluation_metrics import RecallMeasurement
+from wrapper.metrics.evaluation_metrics import DiversityMetric, NoveltyMetric, TopicInteractionMeasurement, TopicInteractionSpread, UserMSEMeasurement
 from wrapper.metrics.clustering_metrics import MeanCosineSim, MeanDistanceFromCentroid, MeanCosineSimPerCluster, MeanDistanceFromCentroidPerCluster
 from src.utils import compute_constrained_clusters, create_global_user_pairs, user_topic_mapping, create_cluster_user_pairs, load_and_process_movielens, compute_embeddings
 from src.post_processing_utils import process_diagnostic
@@ -68,8 +68,7 @@ def run_bubble_burster(
 
     
 """
-python run_prelim_exp.py --output_dir prelim_exp_results/10train90run  --startup_iters 10 --sim_iters 90 --num_sims 1
-python run_prelim_exp.py --output_dir prelim_exp_results/50train50run  --startup_iters 50 --sim_iters 50 --num_sims 1
+python run_prelim_exp.py --output_dir prelim_exp_results/test_interaction_measurement  --startup_iters 5 --sim_iters 10 --num_sims 1
 """
 if __name__ == "__main__":
     # parse arguments
@@ -106,28 +105,19 @@ if __name__ == "__main__":
     rng = np.random.default_rng(args["seed"])
     
     hyper_params = {
-        "drift":[0.05, 0.1], 
-        "attention_exp":[-0.2, -0.8], 
-        "repeated_training":[0], 
-        "num_attrs":[15,20], 
-        "num_clusters":[15,20],
+        "drift":[0.1], 
+        "attention_exp":[-0.8], 
+        "repeated_training":[1], 
+        "num_attrs":[20], 
+        "num_clusters":[15],
         "compute_embeddings_via_surprise":[0],
         "create_cluster_user_pairs_by_user_topic_mapping":[1]
     }
-    # hyper_params = {
-    #     "drift":[0.0], 
-    #     "attention_exp":[0], 
-    #     "repeated_training":[0], 
-    #     "num_attrs":[10], 
-    #     "num_clusters":[10],
-    #     "compute_embeddings_via_surprise":[0],
-    #     "create_cluster_user_pairs_by_user_topic_mapping":[0]
-    # }
+
     models = dict()
     for p in itertools.product(*hyper_params.values()):
         models[f"{p[0]}drift_{p[1]}attention_{p[2]}retraining_{p[3]}attributes_{p[4]}clusters_{p[5]}surprise_{p[6]}user-topic-mapping"] = dict(zip(hyper_params.keys(), p))
         
-    
     metric_names = [
         "mse",
         "interaction_spread",
@@ -142,12 +132,31 @@ if __name__ == "__main__":
         "mean_global_distance_from_centroid",
         "mean_distance_from_centroid_per_cluster",
         "interaction_measurement",
-        "recall",
-        "rmse"
+        "rmse",
+        "mean_novelty",
+        "mean_slate_topic_diversity",
+        "topic_interaction_histogram",
+        "topic_interaction_spread",
+        "mse_per_user"
     ]
     result_metrics = {k: defaultdict(list) for k in metric_names}
-    diagnostics_list = ["mean", "std", "median", "min", "max", "skew"]
-    result_diagnostics = {k: defaultdict(list) for k in diagnostics_list}
+    
+    diagnostic_metrics = set((
+        "mse",
+        "global_interaction_similarity",
+        "inter_cluster_interaction_similarity",
+        "intra_cluster_interaction_similarity",
+        "mean_global_cosine_sim",
+        "mean_intra_cluster_cosine_sim",
+        "mean_inter_cluster_cosine_sim",
+        "mean_cosine_sim_per_cluster",
+        "mean_cluster_distance_from_centroid",
+        "mean_global_distance_from_centroid",
+        "mean_novelty"
+    ))
+    diagnostics_vars = ["mean", "std", "median", "min", "max", "skew"]
+    model_diagnostics = {k: defaultdict(list) for k in diagnostic_metrics}
+    result_diagnostics = {k: defaultdict(list) for k in diagnostic_metrics}
     
     sim_environment_variables = [
         "actual_user_representation_initial",
@@ -195,21 +204,25 @@ if __name__ == "__main__":
                 raise Exception("❗️ Creating cluster user pairs failed ❗️")
             
             metrics_list = [
-                MSEMeasurement(),  
+                MSEMeasurement(diagnostics=True),  
                 InteractionSpread(),                
-                InteractionSimilarity(pairs=global_user_pairs, name='global_interaction_similarity'), 
-                InteractionSimilarity(pairs=inter_cluster_user_pairs, name='inter_cluster_interaction_similarity'), 
-                InteractionSimilarity(pairs=intra_cluster_user_pairs, name='intra_cluster_interaction_similarity'), 
-                MeanCosineSim(pairs=global_user_pairs, name='mean_global_cosine_sim'),
-                MeanCosineSim(pairs=intra_cluster_user_pairs, name='mean_intra_cluster_cosine_sim'),
-                MeanCosineSim(pairs=inter_cluster_user_pairs, name='mean_inter_cluster_cosine_sim'),
-                MeanCosineSimPerCluster(user_cluster_ids=user_cluster_ids, n_clusts=param_vals["num_clusters"], name="mean_cosine_sim_per_cluster"), 
-                MeanDistanceFromCentroid(user_cluster_ids=user_cluster_ids, user_centroids=user_cluster_centers, name="mean_cluster_distance_from_centroid"), 
-                MeanDistanceFromCentroid(user_cluster_ids=global_user_cluster_ids, user_centroids=global_user_cluster_centers, name="mean_global_distance_from_centroid"), 
-                MeanDistanceFromCentroidPerCluster(user_cluster_ids=user_cluster_ids, user_centroids=user_cluster_centers, n_clusts=param_vals["num_clusters"], name="mean_distance_from_centroid_per_cluster"),
-                InteractionMeasurement(name="interaction_measurement"),
-                RecallMeasurement(name="recall"),
-                RMSEMeasurement()
+                InteractionSimilarity(pairs=global_user_pairs, name='global_interaction_similarity', diagnostics=True), 
+                InteractionSimilarity(pairs=inter_cluster_user_pairs, name='inter_cluster_interaction_similarity', diagnostics=True), 
+                InteractionSimilarity(pairs=intra_cluster_user_pairs, name='intra_cluster_interaction_similarity', diagnostics=True), 
+                MeanCosineSim(pairs=global_user_pairs, name='mean_global_cosine_sim', diagnostics=True),
+                MeanCosineSim(pairs=intra_cluster_user_pairs, name='mean_intra_cluster_cosine_sim', diagnostics=True),
+                MeanCosineSim(pairs=inter_cluster_user_pairs, name='mean_inter_cluster_cosine_sim', diagnostics=True),
+                MeanCosineSimPerCluster(user_cluster_ids=user_cluster_ids, n_clusts=param_vals["num_clusters"], name="mean_cosine_sim_per_cluster", diagnostics=True), 
+                MeanDistanceFromCentroid(user_cluster_ids=user_cluster_ids, user_centroids=user_cluster_centers, name="mean_cluster_distance_from_centroid", diagnostics=True), 
+                MeanDistanceFromCentroid(user_cluster_ids=global_user_cluster_ids, user_centroids=global_user_cluster_centers, name="mean_global_distance_from_centroid", diagnostics=True), 
+                MeanDistanceFromCentroidPerCluster(user_cluster_ids=user_cluster_ids, user_centroids=user_cluster_centers, n_clusts=param_vals["num_clusters"], name="mean_distance_from_centroid_per_cluster", diagnostics=True),
+                InteractionMeasurement(name="interaction_histogram"),
+                RMSEMeasurement(),
+                NoveltyMetric(diagnostics=True),
+                DiversityMetric(),
+                TopicInteractionMeasurement(),
+                TopicInteractionSpread(),
+                UserMSEMeasurement()
             ]
             
             model = run_bubble_burster(
@@ -222,19 +235,16 @@ if __name__ == "__main__":
             )
             # Saving final metrics
             for metric in metrics_list:
-                if metric.name != "interaction_measurement":
-                    result_metrics[metric.name][param_string].append(process_measurement(model, metric.name))
-                try:
-                    assert(0), "Use Diagnostics.hist() method for this !!!!!"
-                    for diagnostic in diagnostics_list:
-                        result_diagnostics[metric.name][param_string][diagnostic].append(process_diagnostic(metric, diagnostic))
-                except:
-                    pass
+                result_metrics[metric.name][param_string].append(process_measurement(model, metric.name))
+                # Recording model diagnostics
+                if metric.name in diagnostic_metrics:
+                    for diagnostic in diagnostics_vars:
+                        model_diagnostics[metric.name][diagnostic].append(process_diagnostic(metric, diagnostic))
             # Saving simulation environment variables
             sim_environment["actual_user_representation_initial"][param_string].append(user_representation)
             sim_environment["actual_user_representation_final"][param_string].append(model.users.actual_user_profiles.value)
             sim_environment["user_cluster_assignments"][param_string].append(user_cluster_ids)
-            sim_environment["user_cluster_centroids"][param_string].append(user_cluster_ids)
+            sim_environment["user_cluster_centroids"][param_string].append(user_cluster_centers)
             sim_environment["item_representation"][param_string].append(item_representation)
             sim_environment["item_cluster_assignments"][param_string].append(item_cluster_ids)
             sim_environment["item_cluster_centroids"][param_string].append(item_cluster_centers)
@@ -243,13 +253,16 @@ if __name__ == "__main__":
                 sim_environment["user_item_cluster_mapping"][param_string].append(user_item_cluster_mapping)
             else:
                 sim_environment["user_item_cluster_mapping"][param_string].append(np.array([]))
+                
+            for metric in result_diagnostics:
+                result_diagnostics[metric][param_string] = model_diagnostics[metric]
         
     # write results to pickle file
     output_file_metrics = os.path.join(args["output_dir"], "sim_results.pkl")
     pkl.dump(result_metrics, open(output_file_metrics, "wb"), -1)
     
-    output_file_metrics = os.path.join(args["output_dir"], "sim_diagnostics.pkl")
-    pkl.dump(result_diagnostics, open(output_file_metrics, "wb"), -1)
+    output_file_diagnostics = os.path.join(args["output_dir"], "sim_diagnostics.pkl")
+    pkl.dump(result_diagnostics, open(output_file_diagnostics, "wb"), -1)
     
     output_file_sim_env = os.path.join(args["output_dir"], "sim_environment.pkl")
     pkl.dump(sim_environment, open(output_file_sim_env, "wb"), -1)

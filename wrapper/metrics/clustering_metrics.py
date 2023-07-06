@@ -29,12 +29,15 @@ class MeanCosineSim(Measurement, Diagnostics):
             self.diagnose(paired_cos_sim)
 
 
-class MeanDistanceFromCentroid(Measurement):
-    def __init__(self, user_cluster_ids, user_centroids, name="mean_distance_from_centroid", verbose=False):
+class MeanDistanceFromCentroid(Measurement, Diagnostics):
+    def __init__(self, user_cluster_ids, user_centroids, name="mean_distance_from_centroid", verbose=False, diagnostics=False):
+        self.diagnostics = diagnostics
         self.user_ids = np.arange(user_cluster_ids.shape[0])
         self.cluster_ids = user_cluster_ids
         self.user_centroids = user_centroids
         Measurement.__init__(self, name, verbose)
+        if diagnostics:
+            Diagnostics.__init__(self)
         
     def measure(self, recommender):
         if self.user_centroids.shape[0] == 1:
@@ -43,6 +46,8 @@ class MeanDistanceFromCentroid(Measurement):
             centroid_vecs = self.user_centroids[self.cluster_ids]
         dist = np.linalg.norm(recommender.users.actual_user_profiles.value - centroid_vecs, axis=1)
         self.observe(np.mean(dist))
+        if self.diagnostics:
+            self.diagnose(dist)
         
 
 class MeanCosineSimPerCluster(Measurement, Diagnostics):
@@ -68,16 +73,19 @@ class MeanCosineSimPerCluster(Measurement, Diagnostics):
             
         self.observe(avg_cos_sim_per_clust)
         if self.diagnostics:
-            self.diagnose(avg_cos_sim_per_clust)
+            self.diagnose(np.array(avg_cos_sim_per_clust))
     
     
-class MeanDistanceFromCentroidPerCluster(Measurement):
-    def __init__(self, user_cluster_ids, user_centroids, n_clusts, name="mean_distance_from_centroid_per_cluster", verbose=False):
+class MeanDistanceFromCentroidPerCluster(Measurement, Diagnostics):
+    def __init__(self, user_cluster_ids, user_centroids, n_clusts, name="mean_distance_from_centroid_per_cluster", verbose=False, diagnostics=False):
+        self.diagnostics = diagnostics
         self.user_cluster_ids = user_cluster_ids
         self.cluster_ids = user_cluster_ids
         self.user_centroids = user_centroids
         self.n_clusts = n_clusts
         Measurement.__init__(self, name, verbose)
+        if diagnostics:
+            Diagnostics.__init__(self)
         
     def measure(self, recommender):
         avg_dist_per_clust = list()
@@ -88,3 +96,5 @@ class MeanDistanceFromCentroidPerCluster(Measurement):
             avg_dist_per_clust.append(np.mean(dist))
         
         self.observe(avg_dist_per_clust)
+        if self.diagnostics:
+            self.diagnose(np.array(avg_dist_per_clust))

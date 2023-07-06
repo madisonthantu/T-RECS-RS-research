@@ -20,70 +20,101 @@ simplefilter(action='ignore', category=FutureWarning)
 
 random_state = np.random.seed(42)
 
-def get_clusters(embeddings, name, n_clusters:int=25, n_attrs:int=20, max_iter:int=100):
-    """
-    Creates clusters of movies based on their genre.
-    Inputs:
-        embeddings: Matrix of embeddings, e.g. user representation
-        n_attrs: number of attributes to use in NMF
-        nmf_solver: solver to use in NMF
-    Outputs:
-        clusters: a list of cluster assignments
-    """
-    # Create topic clusters
-    #create co-occurence matrix from binary_interaction_matrix
-    file_path = f'/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research/artefacts/topic_clusters/{name}_clusters_{n_clusters}clusters_{n_attrs}attributes_{max_iter}iters.pkl'
-    if not os.path.exists(file_path):
-        print('Calculating clusters...')
+# def get_clusters(embeddings, name, n_clusters:int=25, n_attrs:int=20, max_iter:int=100):
+#     """
+#     Creates clusters of movies based on their genre.
+#     Inputs:
+#         embeddings: Matrix of embeddings, e.g. user representation
+#         n_attrs: number of attributes to use in NMF
+#         nmf_solver: solver to use in NMF
+#     Outputs:
+#         clusters: a list of cluster assignments
+#     """
+#     # Create topic clusters
+#     #create co-occurence matrix from binary_interaction_matrix
+#     file_path = f'/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research/artefacts/topic_clusters/{name}_clusters_{n_clusters}clusters_{n_attrs}attributes_{max_iter}iters.pkl'
+#     if not os.path.exists(file_path):
+#         print('Calculating clusters...')
 
-        kmeans = KMeans(n_clusters=n_clusters, max_iter=max_iter, random_state=random_state).fit(embeddings)
-        pickle.dump(kmeans, open(file_path, 'wb'))
+#         kmeans = KMeans(n_clusters=n_clusters, max_iter=max_iter, random_state=random_state).fit(embeddings)
+#         pickle.dump(kmeans, open(file_path, 'wb'))
 
-        print('Calculated clusters.')
-    else:         
-        # load the model from disk
-        kmeans = pickle.load(open(file_path, 'rb'))
-        print('Loaded clusters.')
+#         print('Calculated clusters.')
+#     else:         
+#         # load the model from disk
+#         kmeans = pickle.load(open(file_path, 'rb'))
+#         print('Loaded clusters.')
 
-    cluster_ids = kmeans.predict(embeddings)
-    centroids = kmeans.cluster_centers_
-    return cluster_ids, centroids
-
-
-def compute_clusters(embeddings, name, n_clusters:int=25, n_attrs:int=20, max_iter:int=100):
-    """
-    Creates clusters of movies based on their genre.
-    Inputs:
-        embeddings: Matrix of embeddings, e.g. user representation
-        n_attrs: number of attributes to use in NMF
-        nmf_solver: solver to use in NMF
-    Outputs:
-        clusters: a list of cluster assignments
-    """
-    print('Calculating clusters ...')
-    kmeans = KMeans(n_clusters=n_clusters, max_iter=max_iter, random_state=random_state).fit(embeddings)
-    print('... Calculated clusters.')
-    cluster_ids = kmeans.predict(embeddings)
-    centroids = kmeans.cluster_centers_
-    return cluster_ids, centroids
+#     cluster_ids = kmeans.predict(embeddings)
+#     centroids = kmeans.cluster_centers_
+#     return cluster_ids, centroids
 
 
-def compute_constrained_clusters(embeddings, name, n_clusters:int=25):
+# def compute_clusters(embeddings, name, n_clusters:int=25, n_attrs:int=20, max_iter:int=100):
+#     """
+#     Creates clusters of movies based on their genre.
+#     Inputs:
+#         embeddings: Matrix of embeddings, e.g. user representation
+#         n_attrs: number of attributes to use in NMF
+#         nmf_solver: solver to use in NMF
+#     Outputs:
+#         clusters: a list of cluster assignments
+#     """
+#     print('Calculating clusters ...')
+#     kmeans = KMeans(n_clusters=n_clusters, max_iter=max_iter, random_state=random_state).fit(embeddings)
+#     print('... Calculated clusters.')
+#     cluster_ids = kmeans.predict(embeddings)
+#     centroids = kmeans.cluster_centers_
+#     return cluster_ids, centroids
+
+
+def compute_constrained_clusters(embeddings, name, n_clusters, verbose=False):
     # Define topic clusters using K-Means via k-means-constrained library
     kmeans_clf = KMeansConstrained(
         n_clusters=n_clusters,
         size_min=3,
         random_state=42
     )
-    print('Calculating constrained clusters ...')
+    if verbose:
+        print('Calculating constrained clusters ...')
     kmeans_clf.fit_predict(embeddings)
-    print('... Calculated constrained clusters.')
+    if verbose:
+        print('... Calculated constrained clusters.')
     cluster_ids, centroids = kmeans_clf.labels_, kmeans_clf.cluster_centers_
 
     return cluster_ids, centroids
 
 
-def create_embeddings(binary_matrix, n_attrs:int=100, max_iter:int=100):
+# def create_embeddings(binary_matrix, n_attrs:int=100, max_iter:int=100):
+#     """
+#     Creates embeddings for users and items based on their interactions.
+#     Inputs:
+#         binary_matrix: a binary matrix of users and movies
+#         n_attrs: number of attributes to use in NMF
+#         max_iter: number of iteration for NMF
+#     Outputs:
+#         user_representation: a matrix of user embeddings
+#         item_representation: a matrix of item embeddings
+#     """
+#     user_representation_file_path = f'/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research/artefacts/representations/ml_user_representations_{n_attrs}attributes_{max_iter}iters.npy'
+#     item_representation_file_path = f'/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research/artefacts/representations/ml_item_representations_{n_attrs}attributes_{max_iter}iters.npy'
+#     if not os.path.exists(user_representation_file_path) or not os.path.exists(item_representation_file_path):
+#         print('Calculating embeddings...')
+#         nmf = NMF(n_components=n_attrs, init='random', random_state=random_state, max_iter=max_iter)
+#         user_representation = nmf.fit_transform(binary_matrix)
+#         item_representation = nmf.components_
+#         np.save(user_representation_file_path, user_representation)
+#         np.save(item_representation_file_path, item_representation)
+#         print('Calculated embeddings.')
+#     else:
+#         user_representation = np.load(user_representation_file_path)
+#         item_representation = np.load(item_representation_file_path)
+#         print('Loaded embeddings.')
+
+    # return user_representation, item_representation
+
+
+def compute_embeddings(binary_matrix, n_attrs, max_iter, verbose=False):
     """
     Creates embeddings for users and items based on their interactions.
     Inputs:
@@ -94,40 +125,13 @@ def create_embeddings(binary_matrix, n_attrs:int=100, max_iter:int=100):
         user_representation: a matrix of user embeddings
         item_representation: a matrix of item embeddings
     """
-    user_representation_file_path = f'/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research/artefacts/representations/ml_user_representations_{n_attrs}attributes_{max_iter}iters.npy'
-    item_representation_file_path = f'/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research/artefacts/representations/ml_item_representations_{n_attrs}attributes_{max_iter}iters.npy'
-    if not os.path.exists(user_representation_file_path) or not os.path.exists(item_representation_file_path):
-        print('Calculating embeddings...')
-        nmf = NMF(n_components=n_attrs, init='random', random_state=random_state, max_iter=max_iter)
-        user_representation = nmf.fit_transform(binary_matrix)
-        item_representation = nmf.components_
-        np.save(user_representation_file_path, user_representation)
-        np.save(item_representation_file_path, item_representation)
-        print('Calculated embeddings.')
-    else:
-        user_representation = np.load(user_representation_file_path)
-        item_representation = np.load(item_representation_file_path)
-        print('Loaded embeddings.')
-
-    return user_representation, item_representation
-
-
-def compute_embeddings(binary_matrix, n_attrs:int=100, max_iter:int=100):
-    """
-    Creates embeddings for users and items based on their interactions.
-    Inputs:
-        binary_matrix: a binary matrix of users and movies
-        n_attrs: number of attributes to use in NMF
-        max_iter: number of iteration for NMF
-    Outputs:
-        user_representation: a matrix of user embeddings
-        item_representation: a matrix of item embeddings
-    """
-    print('Calculating embeddings ...')
+    if verbose:
+        print('Calculating embeddings ...')
     nmf = NMF(n_components=n_attrs, init='random', random_state=random_state, max_iter=max_iter)
     user_representation = nmf.fit_transform(binary_matrix)
     item_representation = nmf.components_
-    print('... Calculated embeddings.')
+    if verbose:
+        print('... Calculated embeddings.')
     return user_representation, item_representation
 
 

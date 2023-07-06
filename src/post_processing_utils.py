@@ -60,5 +60,5 @@ def create_parameter_string(naming_config):
         parameters_str += f'_{value}{key}'
         
 
-def process_diagnostic(metric, diagnostics_list):
-    return metric.get_diagnostics()[diagnostics_list].to_dict(orient='list')
+def process_diagnostic(metric, diagnostics_var):
+    return metric.get_diagnostics()[diagnostics_var].to_numpy()

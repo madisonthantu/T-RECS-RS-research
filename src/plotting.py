@@ -223,10 +223,18 @@ def plot_tsne_comparison(df1, df2, n_clusters):
     plt.show()
     
     
-def plot_item_popularity_distribution(interaction_matrix, y_label="No. interactions", x_label="Item ID", title="Item interaction distribution", ax=None):
-    intrxn_per_item = np.sum(interaction_matrix, axis=0)
+def plot_item_popularity_distribution(interaction_matrix, y_label="No. interactions", x_label="Item No.", title="Item interaction distribution", ax=None):
+    intrxn_per_item = np.sort(np.sum(interaction_matrix, axis=0))[::-1]
     fig = plt.bar(np.arange(intrxn_per_item.size), intrxn_per_item)
     plt.title(title)
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     return fig
+
+
+def graph_metrics_by_axis(ax, results, metric_key, metric_key_map):
+    ax.plot(results[metric_key])#, label=metric_key)
+    ax.set_title(f"{metric_key}")
+    ax.set_ylabel(metric_key_map[metric_key])
+    ax.set_xlabel("Timestep")
+    return ax

@@ -78,7 +78,7 @@ class NoveltyMetric(Measurement, Diagnostics):
         item_counts = recommender.item_count + 0.1
         novelty = (-1) * np.log(item_counts / recommender.num_users)
         
-        self.observe(novelty)
+        self.observe(np.mean(novelty))
         if self.diagnostics:
             self.diagnose(novelty)
         
@@ -124,7 +124,7 @@ class SerendipityMetric(Measurement):
        
         
 class DiversityMetric(Measurement):
-    def __init__(self, name="diversity", verbose=False):
+    def __init__(self, name="mean_slate_topic_diversity", verbose=False):
         Measurement.__init__(self, name, verbose)
         
     def measure(self, recommender):
@@ -357,7 +357,7 @@ class RecallMeasurement(Measurement):
 
         
 class UserMSEMeasurement(Measurement):
-    def __init__(self, name="user_mse", verbose=False):
+    def __init__(self, name="mse_per_user", verbose=False):
         Measurement.__init__(self, name, verbose)
         
     def measure(self, recommender):
