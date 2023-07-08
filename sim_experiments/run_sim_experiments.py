@@ -34,6 +34,9 @@ import pprint
 import pickle as pkl
 warnings.simplefilter("ignore")
 
+# import inspect module
+import inspect
+
 
 def run_bubble_burster(
     user_representation, 
@@ -50,12 +53,19 @@ def run_bubble_burster(
         actual_user_profiles=user_representation, 
         **user_config
     )
+    print()
+    for k, v in vars(users).items():
+        print(k, v)
+    print()
     bubble = BubbleBurster(
         actual_user_representation=users, 
         actual_item_representation=item_representation,
         item_topics=item_cluster_ids,
         **model_config
     )
+    for k, v in vars(bubble).items():
+        print(k, v)
+    print()
     bubble.add_metrics(*metrics_list)
     bubble.startup_and_train(**train_config)
     bubble.run(**run_config)
@@ -99,6 +109,12 @@ DONE:
 [3][b]      Random recommender (# random_items_in_slate == # items_in_slate), repeated training
             python run_sim_experiments.py  --output_dir sim_results  --model_name random_recommender  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 5  --random_items_per_iter 10
 
+TO DO:
+[4][a]      Random interleaving recommender (# random_items_in_slate == # items_in_slate), single training
+            python run_sim_experiments.py  --output_dir sim_results  --model_name random_interleaving  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 5  --random_items_per_iter 5
+[4][b]      Random interleaving recommender (# random_items_in_slate == # items_in_slate), repeated training
+            python run_sim_experiments.py  --output_dir sim_results  --model_name random_interleaving  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 5  --random_items_per_iter 5
+
 
 """
 if __name__ == "__main__":
@@ -121,7 +137,7 @@ if __name__ == "__main__":
     parser.add_argument('--sim_iters', type=int, required=True)
     parser.add_argument('--seed', type=int, default=random_state)
     
-    parser.add_argument('--probabilistic', type=int, default=False)
+    parser.add_argument('--probabilistic', type=int, default=0)
     parser.add_argument('--random_items_per_iter', type=int, default=0)
     parser.add_argument('--repeated_items_repeat_interactions', type=int,  default=0)
     

@@ -61,4 +61,4 @@ def create_parameter_string(naming_config):
         
 
 def process_diagnostic(metric, diagnostics_var):
-    return metric.get_diagnostics()[diagnostics_var].to_numpy()
+    return metric.get_diagnostics()[diagnostics_var].tolist()

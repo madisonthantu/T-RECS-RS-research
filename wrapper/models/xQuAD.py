@@ -23,7 +23,7 @@ class xQuAD(BubbleBurster):
     """
     # We define default values in the signature so we can call the constructor with no argument
 
-    def __init__(self, xquad_method, alpha=0.1, **kwargs):
+    def __init__(self, xquad_method, alpha, **kwargs):
         super().__init__(**kwargs)
         self.xquad_method_str = xquad_method
         if xquad_method == "binary":
