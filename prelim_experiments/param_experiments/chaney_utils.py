@@ -42,6 +42,23 @@ def merge_results(folder_paths, file_names):
     return final_result
 
 
+def merge_diagnostics_results(folder_paths, file_names):
+    assert (len(folder_paths) == len(file_names)), "Must supply same number of folder paths and file names"
+    model_diagnostics = defaultdict(lambda: defaultdict(list))
+    final_diagnostics = defaultdict(lambda: defaultdict(list))
+
+    for idx in range(len(folder_paths)):
+        results = load_sim_results(folder_paths[idx], file_names[idx])
+        for metric_name, v in results.items():
+            for model_name, diagnostic in v.items():
+                for diag, diag_vals in diagnostic.items():
+                    model_diagnostics[metric_name][diag] = [vals.tolist() for vals in diag_vals]
+                    
+    for metric in model_diagnostics:
+        final_diagnostics[metric][model_name] = model_diagnostics[metric]
+    return final_diagnostics
+
+
 """
 Graphing results utilities
 """
@@ -97,7 +114,7 @@ def graph_relative_to_ideal(train_results, metric_key, model_keys, label_map, ab
     graph_metrics(relative_dist, metric_key, model_keys, label_map, mean_sigma, mult_sd, conf_sigma)
     
     
-def graph_metrics_by_axis(ax, train_results, metric_key, model_keys, label_map, mean_sigma=0, mult_sd=0, conf_sigma=0, graph_by="params"):
+def graph_metrics_by_axis(ax, train_results, metric_key, model_keys, label_map, mean_sigma=0, mult_sd=0, conf_sigma=0, label="by_params"):
     for m in model_keys:
         if not isinstance(train_results[metric_key][m], np.ndarray):
             train_results[metric_key][m] = np.array(train_results[metric_key][m])
@@ -106,12 +123,12 @@ def graph_metrics_by_axis(ax, train_results, metric_key, model_keys, label_map, 
             values = gaussian_filter1d(train_results[metric_key][m].mean(axis=0), sigma=mean_sigma)
         else:
             values = train_results[metric_key][m].mean(axis=0)
-        if graph_by == "params":
+        if label == "by_params":
             line_label = label_map[m]
-        elif graph_by == "metric":
+        elif label == "by_metric":
             line_label = metric_key
         else:
-            raise Exception("Must graph by either params or metric")
+            line_label = label
         line = ax.plot(values, label=line_label)
         line_color = line[0].get_color()
         if mult_sd > 0:
@@ -212,3 +229,38 @@ def graph_histogram_metric_by_axis(ax, train_results, metric_key, model_keys, la
 #     for metric in metric_keys:
 #         relative_dists[metric] = transform_relative_to_global(train_results, global_metric_key, metric, model_keys, absolute_measure)
 #     graph_n_metrics_by_axis(ax, relative_dists, metric_keys, model_keys, label_map, mean_sigma, mult_sd, conf_sigma)
+
+def graph_metrics_difference_by_axis(ax, train_results, larger_metric, smaller_metric, model_keys, label_map, mean_sigma=0, mult_sd=0, conf_sigma=0, normalized=True, label=""):
+    for m in model_keys:
+        if not isinstance(train_results[larger_metric][m], np.ndarray):
+            train_results[larger_metric][m] = np.array(train_results[larger_metric][m])
+        if not isinstance(train_results[smaller_metric][m], np.ndarray):
+            train_results[smaller_metric][m] = np.array(train_results[smaller_metric][m])
+        # average across trials and smooth, if necessary
+        difference = train_results[larger_metric][m] - train_results[smaller_metric][m]
+        if normalized:
+            difference = np.divide(difference, train_results[larger_metric][m])
+        if mean_sigma > 0:
+            values = gaussian_filter1d(difference.mean(axis=0), sigma=mean_sigma)
+        else:
+            values = difference.mean(axis=0)
+        
+        if label == "by_params":
+            line_label = label_map[m]
+        elif label == "by_metric":
+            line_label = f"{larger_metric}/{smaller_metric}"
+        else:
+            line_label = label
+        line = ax.plot(values, label=line_label)
+        line_color = line[0].get_color()
+        if mult_sd > 0:
+            std = difference.std(axis=0)
+            timesteps = np.arange(len(std))
+            low = values - mult_sd * std
+            high = values + mult_sd * std
+            if conf_sigma > 0:
+                low = gaussian_filter1d(low, sigma=conf_sigma)
+                high = gaussian_filter1d(high, sigma=conf_sigma)
+            ax.fill_between(timesteps, low, high, color = line_color, alpha=0.3)
+    ax.legend(facecolor='white', framealpha=1, loc='upper right', bbox_to_anchor=(1, 0.5))
+    return ax

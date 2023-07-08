@@ -378,7 +378,7 @@ if __name__ == "__main__":
     #     "xquad_binary_0.1",
     #     "xquad_binary_0.25",
     #     "xquad_smooth_0.1",
-    #     "xquad_smooth_0.25"
+    #     "xquad_smootgh_0.25"
     # ]
     
     print("Running simulations...👟")
