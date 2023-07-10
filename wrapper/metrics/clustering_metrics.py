@@ -98,3 +98,15 @@ class MeanDistanceFromCentroidPerCluster(Measurement, Diagnostics):
         self.observe(avg_dist_per_clust)
         if self.diagnostics:
             self.diagnose(np.array(avg_dist_per_clust))
+            
+            
+class UserDistanceFromClusterCentroid(Measurement):
+    def __init__(self, user_cluster_ids, user_centroids, n_clusts, name="user_distance_from_cluster_centroid", verbose=False):
+        self.user_cluster_ids = user_cluster_ids
+        self.user_centroids = user_centroids[user_cluster_ids, :]
+        Measurement.__init__(self, name, verbose)
+        
+    def measure(self, recommender):
+        user_embeddings = recommender.users.actual_user_profiles.value
+        user_distance = np.linalg.norm(np.subtract(user_embeddings, self.user_centroids), axis=1)
+        self.observe(user_distance)

@@ -22,7 +22,7 @@ from prelim_experiments.param_experiments.chaney_utils import *
 from wrapper.models.bubble import BubbleBurster
 from wrapper.models.xQuAD import xQuAD
 from wrapper.metrics.evaluation_metrics import DiversityMetric, NoveltyMetric, TopicInteractionMeasurement, TopicInteractionSpread, UserMSEMeasurement
-from wrapper.metrics.clustering_metrics import MeanCosineSim, MeanDistanceFromCentroid, MeanCosineSimPerCluster, MeanDistanceFromCentroidPerCluster
+from wrapper.metrics.clustering_metrics import MeanCosineSim, MeanDistanceFromCentroid, MeanCosineSimPerCluster, MeanDistanceFromCentroidPerCluster, UserDistanceFromClusterCentroid
 from src.utils import compute_constrained_clusters, create_global_user_pairs, user_topic_mapping, create_cluster_user_pairs, load_and_process_movielens, compute_embeddings
 from src.post_processing_utils import process_diagnostic
 
@@ -43,9 +43,9 @@ def get_metrics(args):
     metrics = [
         MSEMeasurement(diagnostics=True),  
         InteractionSpread(),                
-        InteractionSimilarity(pairs=global_user_pairs, name='global_interaction_similarity', diagnostics=True), 
-        InteractionSimilarity(pairs=inter_cluster_user_pairs, name='inter_cluster_interaction_similarity', diagnostics=True), 
-        InteractionSimilarity(pairs=intra_cluster_user_pairs, name='intra_cluster_interaction_similarity', diagnostics=True), 
+        InteractionSimilarity(pairs=global_user_pairs, name='global_interaction_similarity'), 
+        InteractionSimilarity(pairs=inter_cluster_user_pairs, name='inter_cluster_interaction_similarity'), 
+        InteractionSimilarity(pairs=intra_cluster_user_pairs, name='intra_cluster_interaction_similarity'), 
         MeanCosineSim(pairs=global_user_pairs, name='mean_global_cosine_sim', diagnostics=True),
         MeanCosineSim(pairs=intra_cluster_user_pairs, name='mean_intra_cluster_cosine_sim', diagnostics=True),
         MeanCosineSim(pairs=inter_cluster_user_pairs, name='mean_inter_cluster_cosine_sim', diagnostics=True),
@@ -59,40 +59,10 @@ def get_metrics(args):
         DiversityMetric(),
         TopicInteractionMeasurement(),
         TopicInteractionSpread(),
-        UserMSEMeasurement()
+        UserMSEMeasurement(),
+        UserDistanceFromClusterCentroid(user_cluster_ids=user_cluster_ids, user_centroids=user_cluster_centers, n_clusts=args["num_clusters"], name="user_distance_from_cluster_centroid", verbose=False)
     ]
     return metrics
-
-# def run_bubble_burster_recommender(user_representation, item_representation, item_cluster_ids, args):
-#     users = Users(
-#         actual_user_profiles=user_representation, 
-#         repeat_interactions=0,  # ************************************************************
-#         drift=0.1,
-#         attention_exp=-0.8
-#     )
-#     bubble = BubbleBurster(
-#         actual_user_representation=users, 
-#         actual_item_representation=item_representation,
-#         item_topics=item_cluster_ids,
-#         num_attributes=20,
-#         num_items_per_iter=10,
-#         record_base_state=True,
-#         probabilistic_recommendations=0     # ************************************************************
-#     )
-    
-#     bubble.add_metrics(get_metrics())
-#     bubble.startup_and_train(
-#         timesteps=args["startup_iters"], 
-#     )
-#     bubble.run(
-#         timesteps=args["sim_iters"], 
-#         train_between_steps=args["repeated_training"], 
-#         repeated_items=0,       # ************************************************************
-#         random_items_per_iter=0 # ************************************************************
-#     )
-#     bubble.close() # end logging
-#     return bubble
-
 
 def run_baseline_myopic_recommender(users_config, model_config, train_config, run_config, args):
     users = Users(
@@ -244,21 +214,30 @@ def save_model_results(model_key, model, result_metrics, result_diagnostics, res
     result_environment["item_representation"][model_key].append(item_representation)
     result_environment["item_cluster_assignments"][model_key].append(item_cluster_ids)
     result_environment["item_cluster_centroids"][model_key].append(item_cluster_centers)
-    result_environment["global_user_centroid"][model_key].append(global_user_cluster_centers)
+    result_environment["global_user_centroid"][model_key].append(global_user_cluster_centers) 
     result_environment["user_item_cluster_mapping"][model_key].append(user_item_cluster_mapping)
     
     return result_metrics, result_diagnostics, result_environment
         
 """
--   Repeated training - 1 simulation:
-    python run_sim_experiments_full.py  --output_dir all_sim_results/1simulation  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
--   Single training - 1 simulation:
-    python run_sim_experiments_full.py  --output_dir all_sim_results/1simulation  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1
+-   User pairs created via user-topic mapping, num_clusters=15
+    python run_sim_experiments_full.py  --output_dir all_sim_results/simulation1  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
+    python run_sim_experiments_full.py  --output_dir all_sim_results/simulation1  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1
+-   User pairs created via user clusters, num_clusters=15
+    python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/simulation1  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
+    
+* * * * * * * * *   
 
--   Repeated training - 5 simulations:
-    python run_sim_experiments_full.py  --output_dir all_sim_results/5simulations  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 5
--   Single training - 5 simulations:
-    python run_sim_experiments_full.py  --output_dir all_sim_results/5simulations  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 5
+-   Creating user pairs via user clusters, num_clusters=10
+    python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/10clusters/simulation1  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
+    python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/10clusters/simulation1  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1
+    
+-   Creating user pairs via user clusters, num_clusters=15
+    python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/15clusters/simulation1  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
+    python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/15clusters/simulation1  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1 
+    
+    
+    python run_sim_experiments_full.py  --output_dir all_sim_results/test  --repeated_training 1  --startup_iters 2  --sim_iters 8  --num_sims 1
 """
 if __name__ == "__main__":
     # parse arguments
@@ -275,7 +254,7 @@ if __name__ == "__main__":
     if args["repeated_training"] == False:
         assert(args["startup_iters"] == args["sim_iters"]), "Incorrect ratio of startup to sim iters supplied for repeated_training=False"
     else:
-        assert(args["startup_iters"] < (args["sim_iters"]/4)), "Incorrect ratio of startup to sim iters supplied for repeated_training=True"
+        assert(args["startup_iters"] <= (args["sim_iters"]/4)), "Incorrect ratio of startup to sim iters supplied for repeated_training=True"
     
     if args["repeated_training"]:
         output_directory = f"{args['output_dir']}/repeated_training"
@@ -303,7 +282,7 @@ if __name__ == "__main__":
     hyper_params = {
         "drift":0.1,
         "attention_exp":-0.8,
-        "num_clusters":15,
+        "num_clusters":10,
         "num_attrs":20,
         "max_iter":1000
     }
@@ -327,21 +306,23 @@ if __name__ == "__main__":
         "mean_slate_topic_diversity",
         "topic_interaction_histogram",
         "topic_interaction_spread",
-        "mse_per_user"
+        "mse_per_user",
+        "user_distance_from_cluster_centroid"
     ]
     result_metrics = {k: defaultdict(list) for k in metrics_list}
     
     diagnostic_metrics = set((
         "mse",
-        "global_interaction_similarity",
-        "inter_cluster_interaction_similarity",
-        "intra_cluster_interaction_similarity",
+        # "global_interaction_similarity",
+        # "inter_cluster_interaction_similarity",
+        # "intra_cluster_interaction_similarity",
         "mean_global_cosine_sim",
         "mean_intra_cluster_cosine_sim",
         "mean_inter_cluster_cosine_sim",
         "mean_cosine_sim_per_cluster",
         "mean_cluster_distance_from_centroid",
         "mean_global_distance_from_centroid",
+        "mean_distance_from_centroid_per_cluster",
         "mean_novelty"
     ))
     diagnostics_vars = ["mean", "std", "median", "min", "max", "skew"]
@@ -378,7 +359,7 @@ if __name__ == "__main__":
     #     "xquad_binary_0.1",
     #     "xquad_binary_0.25",
     #     "xquad_smooth_0.1",
-    #     "xquad_smootgh_0.25"
+    #     "xquad_smooth_0.25"
     # ]
     
     print("Running simulations...👟")
@@ -397,7 +378,12 @@ if __name__ == "__main__":
         # Get user pairs - global user pairs, intra-cluster user pairs, inter-cluster user pairs
         global_user_pairs = create_global_user_pairs(user_cluster_ids)
         user_item_cluster_mapping = user_topic_mapping(user_representation, item_cluster_centers)
-        inter_cluster_user_pairs, intra_cluster_user_pairs = create_cluster_user_pairs(user_item_cluster_mapping)
+        """
+        # print("Created user pairs via user-topic mapping")
+        # inter_cluster_user_pairs, intra_cluster_user_pairs = create_cluster_user_pairs(user_item_cluster_mapping)
+        """
+        print("Created user pairs via user cluster IDs")
+        inter_cluster_user_pairs, intra_cluster_user_pairs = create_cluster_user_pairs(user_cluster_ids)
         
         users_config = {
             'actual_user_profiles':user_representation, 
@@ -412,79 +398,50 @@ if __name__ == "__main__":
             'item_topics':item_cluster_ids,
         }
         
+        print("Running baseline_myopic...")
         # models["baseline_myopic"] = run_baseline_myopic_recommender(users_config, model_config, train_config, run_config, hyper_params)
         baseline_myopic = run_baseline_myopic_recommender(users_config, model_config, train_config, run_config, hyper_params)
         result_metrics, result_diagnostics, sim_environment = save_model_results("baseline_myopic", baseline_myopic, result_metrics, result_diagnostics, sim_environment, sim_num)
         
+        print("Running repeated_items_repeat_interactions...")
         # models["repeated_items_repeat_interactions"] = run_repeated_items_repeat_interactions_recommender(users_config, model_config, train_config, run_config, hyper_params)
         repeated_items_repeat_interactions = run_repeated_items_repeat_interactions_recommender(users_config, model_config, train_config, run_config, hyper_params)
         result_metrics, result_diagnostics, sim_environment = save_model_results("repeated_items_repeat_interactions", repeated_items_repeat_interactions, result_metrics, result_diagnostics, sim_environment, sim_num)
         
+        print("Running probabilistic...")
         # models["probabilistic"] = run_probabilistic_recommender(users_config, model_config, train_config, run_config, hyper_params)
         probabilistic = run_probabilistic_recommender(users_config, model_config, train_config, run_config, hyper_params)
         result_metrics, result_diagnostics, sim_environment = save_model_results("probabilistic", probabilistic, result_metrics, result_diagnostics, sim_environment, sim_num)
         
-        # models["random"] = run_random_recommender(users_config, model_config, train_config, run_config, hyper_params)
+        print("Running random...")
+        # models["random"] = run_random_recommender(users_config, model_config, train_config , run_config, hyper_params)
         random = run_random_recommender(users_config, model_config, train_config, run_config, hyper_params)
         result_metrics, result_diagnostics, sim_environment = save_model_results("random", random, result_metrics, result_diagnostics, sim_environment, sim_num)
         
+        print("Running random_interleaving...")
         # models["random_interleaving"] = run_random_interleaving_recommender(users_config, model_config, train_config, run_config, hyper_params)
         random_interleaving = run_random_interleaving_recommender(users_config, model_config, train_config, run_config, hyper_params)
         result_metrics, result_diagnostics, sim_environment = save_model_results("random_interleaving", random_interleaving, result_metrics, result_diagnostics, sim_environment, sim_num)
         
+        print("Running xquad_binary_0.1...")
         # models["xquad_binary_0.1"] = run_xquad_recommender(users_config, model_config, train_config, run_config, hyper_params, method='binary', alpha=0.1)
         xquad_binary_1 = run_xquad_recommender(users_config, model_config, train_config, run_config, hyper_params, method='binary', alpha=0.1)
         result_metrics, result_diagnostics, sim_environment = save_model_results("xquad_binary_0.1", xquad_binary_1, result_metrics, result_diagnostics, sim_environment, sim_num)
         
+        print("Running xquad_binary_0.25...")
         # models["xquad_binary_0.25"] = run_xquad_recommender(users_config, model_config, train_config, run_config, hyper_params, method='binary', alpha=0.25)
         xquad_binary_25 = run_xquad_recommender(users_config, model_config, train_config, run_config, hyper_params, method='binary', alpha=0.25)
         result_metrics, result_diagnostics, sim_environment = save_model_results("xquad_binary_0.25", xquad_binary_25, result_metrics, result_diagnostics, sim_environment, sim_num)
         
+        print("Running xquad_smooth_0.1...")
         # models["xquad_smooth_0.1"] = run_xquad_recommender(users_config, model_config, train_config, run_config, hyper_params, method='smooth', alpha=0.1)
         xquad_smooth_1 = run_xquad_recommender(users_config, model_config, train_config, run_config, hyper_params, method='smooth', alpha=0.1)
         result_metrics, result_diagnostics, sim_environment = save_model_results("xquad_smooth_0.1", xquad_smooth_1, result_metrics, result_diagnostics, sim_environment, sim_num)
         
+        print("Running xquad_smooth_0.25...")
         # models["xquad_smooth_0.25"] = run_xquad_recommender(users_config, model_config, train_config, run_config, hyper_params, method='smooth', alpha=0.25)
         xquad_smooth_25 = run_xquad_recommender(users_config, model_config, train_config, run_config, hyper_params, method='smooth', alpha=0.25)
         result_metrics, result_diagnostics, sim_environment = save_model_results("xquad_smooth_0.25", xquad_smooth_25, result_metrics, result_diagnostics, sim_environment, sim_num)
-        
-        # model_metrics = baseline_myopic.metrics
-        # for metric in model_metrics:
-        #     result_metrics[str(metric.name)][model_keys[0]].append(process_measurement(baseline_myopic, metric.name))
-        #     # Recording model diagnostics
-        #     if metric.name in diagnostic_metrics:
-        #         model_diagnostics = {k: defaultdict(list) for k in diagnostics_vars}
-        #         for diagnostic in diagnostics_vars:
-        #             curr_diagnostics = result_diagnostics[metric.name]["baseline_myopic"]
-        #             for diagnostic in diagnostics_vars:
-        #                 curr_diagnostics.append(process_diagnostic(metric, diagnostic))
-        #             result_diagnostics[metric.name]["baseline_myopic"] = curr_diagnostics
-        
-        # for model_key in model_keys:
-        #     model = models[model_key]
-        #     model_metrics = model.metrics
-        #     # Saving final metrics
-        #     for metric in model_metrics:
-        #         result_metrics[str(metric.name)][model].append(process_measurement(model, metric.name))
-        #         # Recording model diagnostics
-        #         if metric.name in diagnostic_metrics:
-        #             model_diagnostics = {k: defaultdict(list) for k in diagnostics_vars}
-        #             for diagnostic in diagnostics_vars:
-        #                 curr_diagnostics = result_diagnostics[metric.name][model_key]
-        #                 for diagnostic in diagnostics_vars:
-        #                     curr_diagnostics.append(process_diagnostic(metric, diagnostic))
-        #                 result_diagnostics[metric.name][model_key] = curr_diagnostics
-                        
-            # Saving simulation environment variables
-            # sim_environment["actual_user_representation_initial"][model_key].append(user_representation)
-            # sim_environment["actual_user_representation_final"][model_key].append(model.users.actual_user_profiles.value)
-            # sim_environment["user_cluster_assignments"][model_key].append(user_cluster_ids)
-            # sim_environment["user_cluster_centroids"][model_key].append(user_cluster_centers)
-            # sim_environment["item_representation"][model_key].append(item_representation)
-            # sim_environment["item_cluster_assignments"][model_key].append(item_cluster_ids)
-            # sim_environment["item_cluster_centroids"][model_key].append(item_cluster_centers)
-            # sim_environment["global_user_centroid"][model_key].append(global_user_cluster_centers)
-            # sim_environment["user_item_cluster_mapping"][model_key].append(user_item_cluster_mapping)
         
     # write results to pickle file
     output_file_metrics = os.path.join(output_directory, "sim_results.pkl")

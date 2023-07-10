@@ -13,6 +13,7 @@ import scipy.sparse as sp
 from pulp import *
 
 
+
 class xQuAD(BubbleBurster):
     """
     Attributes
@@ -39,7 +40,7 @@ class xQuAD(BubbleBurster):
         if curr_rec_slate_items is not None:
             accuracy_term = filtered_scores
             diversity_term = curr_rec_slate_topics[user_vec[:,:], item_topics] >= 1
-            return (1-self.alpha)*accuracy_term + self.alpha*diversity_term
+            return (1-self.alpha)*accuracy_term + self.alpha*(1 - diversity_term)
         else:
             xquad_scores = (1-self.alpha) * filtered_scores
             return xquad_scores
@@ -48,7 +49,7 @@ class xQuAD(BubbleBurster):
         if curr_rec_slate_items is not None:
             accuracy_term = filtered_scores
             diversity_term = np.divide(curr_rec_slate_topics[user_vec[:,:], item_topics], np.sum(curr_rec_slate_topics, axis=1).reshape((-1,1)))
-            return (1-self.alpha)*accuracy_term + self.alpha*diversity_term
+            return (1-self.alpha)*accuracy_term + self.alpha*(1 - diversity_term)
         else:
             xquad_scores = (1-self.alpha) * filtered_scores
             return xquad_scores
@@ -125,5 +126,4 @@ class xQuAD(BubbleBurster):
             self.log(
                 f"xQuAD recommendation slate, method={self.xquad_method_str}, alpha={self.alpha}:\n{str(curr_rec_slate)}"
             )
-        
         return curr_rec_slate
