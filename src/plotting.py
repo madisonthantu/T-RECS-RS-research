@@ -7,6 +7,7 @@ from scipy import interpolate
 from scipy.spatial import ConvexHull
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def plot_measurements(dfs, parameters_df, ignored_train_ts=0):

@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 def calculate_cluster_switch(user_to_item_cluster_assignment, final_user_pref_mapping, config):
     data = []

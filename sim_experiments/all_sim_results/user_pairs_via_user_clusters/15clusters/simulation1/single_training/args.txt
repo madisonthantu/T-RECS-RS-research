@@ -1,0 +1,6 @@
+{'num_sims': 1,
+ 'output_dir': 'all_sim_results/user_pairs_via_user_clusters/15clusters/simulation1',
+ 'repeated_training': 0,
+ 'seed': None,
+ 'sim_iters': 50,
+ 'startup_iters': 50}

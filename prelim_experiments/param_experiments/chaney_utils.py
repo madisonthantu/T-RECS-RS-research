@@ -42,20 +42,18 @@ def merge_results(folder_paths, file_names):
     return final_result
 
 
-def merge_diagnostics_results(folder_paths, file_names):
+def merge_diagnostics_results(folder_paths, file_names, diagnostics_vars=["mean", "std", "median", "min", "max", "skew"]):
     assert (len(folder_paths) == len(file_names)), "Must supply same number of folder paths and file names"
     model_diagnostics = defaultdict(lambda: defaultdict(list))
     final_diagnostics = defaultdict(lambda: defaultdict(list))
-
     for idx in range(len(folder_paths)):
         results = load_sim_results(folder_paths[idx], file_names[idx])
-        for metric_name, v in results.items():
-            for model_name, diagnostic in v.items():
+        for metric_name, model in results.items():
+            for model_name, diagnostic in model.items():
                 for diag, diag_vals in diagnostic.items():
-                    model_diagnostics[metric_name][diag] = [vals.tolist() for vals in diag_vals]
-                    
-    for metric in model_diagnostics:
-        final_diagnostics[metric][model_name] = model_diagnostics[metric]
+                    model_diagnostics[metric_name][diag] = diag_vals 
+                for metric in model_diagnostics:
+                    final_diagnostics[metric][model_name] = model_diagnostics[metric]
     return final_diagnostics
 
 
@@ -255,6 +253,40 @@ def graph_metrics_difference_by_axis(ax, train_results, larger_metric, smaller_m
         line_color = line[0].get_color()
         if mult_sd > 0:
             std = difference.std(axis=0)
+            timesteps = np.arange(len(std))
+            low = values - mult_sd * std
+            high = values + mult_sd * std
+            if conf_sigma > 0:
+                low = gaussian_filter1d(low, sigma=conf_sigma)
+                high = gaussian_filter1d(high, sigma=conf_sigma)
+            ax.fill_between(timesteps, low, high, color = line_color, alpha=0.3)
+    ax.legend(facecolor='white', framealpha=1, loc='upper right', bbox_to_anchor=(1, 0.5))
+    return ax
+
+
+def graph_metrics_ratio_by_axis(ax, train_results, numerator_metric, denominator_metric, model_keys, label_map, mean_sigma=0, mult_sd=0, conf_sigma=0, label=""):
+    for m in model_keys:
+        if not isinstance(train_results[numerator_metric][m], np.ndarray):
+            train_results[numerator_metric][m] = np.array(train_results[numerator_metric][m])
+        if not isinstance(train_results[denominator_metric][m], np.ndarray):
+            train_results[denominator_metric][m] = np.array(train_results[denominator_metric][m])
+        # average across trials and smooth, if necessary
+        ratio = np.divide(train_results[numerator_metric][m], train_results[denominator_metric][m])
+        if mean_sigma > 0:
+            values = gaussian_filter1d(ratio.mean(axis=0), sigma=mean_sigma)
+        else:
+            values = ratio.mean(axis=0)
+        
+        if label == "by_params":
+            line_label = label_map[m]
+        elif label == "by_metric":
+            line_label = f"{numerator_metric}/{denominator_metric}"
+        else:
+            line_label = label
+        line = ax.plot(values, label=line_label)
+        line_color = line[0].get_color()
+        if mult_sd > 0:
+            std = ratio.std(axis=0)
             timesteps = np.arange(len(std))
             low = values - mult_sd * std
             high = values + mult_sd * std

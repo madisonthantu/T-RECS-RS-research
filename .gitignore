@@ -1,3 +1,6 @@
+*.pkl
+.DS_Store
+
 # Custom Folders
 data/
 .vscode/
@@ -132,3 +135,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+FAR_experiments/

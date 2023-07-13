@@ -1,0 +1,7 @@
+{'num_sims': 1,
+ 'output_dir': 'all_sim_results/user_topic_mapping/15clusters/simulation1',
+ 'repeated_training': 1,
+ 'seed': 42,
+ 'sim_iters': 90,
+ 'startup_iters': 10}
+'Created user pairs via user-topic mapping'

@@ -26,8 +26,6 @@ from wrapper.metrics.clustering_metrics import MeanCosineSim, MeanDistanceFromCe
 from src.utils import compute_constrained_clusters, create_global_user_pairs, user_topic_mapping, create_cluster_user_pairs, load_and_process_movielens, compute_embeddings
 from src.post_processing_utils import process_diagnostic
 
-random_state = np.random.seed(42)
-
 import argparse
 import errno
 import warnings
@@ -38,6 +36,7 @@ warnings.simplefilter("ignore")
 # import inspect module
 import inspect
 
+random_state = np.random.RandomState()
 
 def get_metrics(args):
     metrics = [
@@ -227,17 +226,36 @@ def save_model_results(model_key, model, result_metrics, result_diagnostics, res
     python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/simulation1  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
     
 * * * * * * * * *   
+ ____________
+| DONE  ...  |
+ ————————————
+ 
+Creating user pairs via user clusters, num_clusters=10
+    -   seed=42
+        -   [Done]  python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/10clusters/simulation1  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
+        -   [Done]  python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/10clusters/simulation1  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1
 
--   Creating user pairs via user clusters, num_clusters=10
-    python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/10clusters/simulation1  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
-    python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/10clusters/simulation1  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1
+Creating user pairs via user clusters, num_clusters=15 
+    -   Simulation 1
+        -   [Done]  python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/15clusters/simulation1  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
+        -   [Done]  python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/15clusters/simulation1  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1 
+    -   Simulation 2
+        -   [Done]  python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/15clusters/simulation2  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
+    *** -   [Not]   python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/15clusters/simulation2  --seed 61 --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1
+        
+Creating user pairs via user-topic mapping num_clusters=15 
+    -   seed=42
+        -   [Not]   python run_sim_experiments_full.py  --output_dir all_sim_results/user_topic_mapping/15clusters/simulation1 --seed 42  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
+    *** -   [Not]   python run_sim_experiments_full.py  --output_dir all_sim_results/user_topic_mapping/15clusters/simulation1 --seed 42  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1
     
--   Creating user pairs via user clusters, num_clusters=15
-    python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/15clusters/simulation1  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
-    python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/15clusters/simulation1  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1 
-    
-    
-    python run_sim_experiments_full.py  --output_dir all_sim_results/test  --repeated_training 1  --startup_iters 2  --sim_iters 8  --num_sims 1
+
+ ____________
+| IP    ...  |
+ ————————————
+ ____________
+| TO DO ...  |
+ ————————————
+        
 """
 if __name__ == "__main__":
     # parse arguments
@@ -247,7 +265,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_sims', type=int, default=5)
     parser.add_argument('--startup_iters', type=int, required=True)
     parser.add_argument('--sim_iters', type=int, required=True)
-    parser.add_argument('--seed', type=int, default=random_state)
+    parser.add_argument('--seed', type=int, default=42)
 
     parsed_args = parser.parse_args()
     args = vars(parsed_args)
@@ -255,6 +273,9 @@ if __name__ == "__main__":
         assert(args["startup_iters"] == args["sim_iters"]), "Incorrect ratio of startup to sim iters supplied for repeated_training=False"
     else:
         assert(args["startup_iters"] <= (args["sim_iters"]/4)), "Incorrect ratio of startup to sim iters supplied for repeated_training=True"
+        
+    # if args["data"] != 'ml_100k':
+    #     assert(args['data'] in args['output_dir']), "Data source must be included in output directory if not default data ml-100k"
     
     if args["repeated_training"]:
         output_directory = f"{args['output_dir']}/repeated_training"
@@ -277,15 +298,18 @@ if __name__ == "__main__":
     with open(os.path.join(output_directory, "args.txt"), "w") as log_file:
         pprint.pprint(args, log_file)
     
-    rng = np.random.default_rng(args["seed"])
-    
     hyper_params = {
         "drift":0.1,
         "attention_exp":-0.8,
-        "num_clusters":10,
+        # "num_clusters":10,
+        "num_clusters":15,
         "num_attrs":20,
         "max_iter":1000
     }
+    if "10" in args['output_dir']:
+        assert(hyper_params['num_clusters'] == 10), "Are you SURE the correct number of clusters is supplied?"
+    elif "15" in args['output_dir']:
+        assert(hyper_params['num_clusters'] == 15), "Are you SURE the correct number of clusters is supplied?"
 
     metrics_list = [
         "mse",
@@ -369,21 +393,39 @@ if __name__ == "__main__":
         
         models = {} # temporarily stores models
         # Get user and item representations using NMF
+        # if args['data'] == 'ml_1m':
+        #     data_path = '/Users/madisonthantu/Desktop/DREAM/data/ml-1m/ratings.dat'
+        #     binary_ratings_matrix = load_and_process_movielens_1M(file_path=data_path)
+        # elif args['data'] == 'ml_100k':
+        #     data_path = '/Users/madisonthantu/Desktop/DREAM/data/ml-100k/u.data'
+        #     binary_ratings_matrix = load_and_process_movielens(file_path=data_path)
         binary_ratings_matrix = load_and_process_movielens(file_path=data_path)
-        user_representation, item_representation = compute_embeddings(binary_ratings_matrix, n_attrs=hyper_params["num_attrs"], max_iter=hyper_params["max_iter"])
-        # Define topic clusters using NMF
-        item_cluster_ids, item_cluster_centers = compute_constrained_clusters(embeddings=item_representation.T, name='item_clusters', n_clusters=hyper_params["num_clusters"])
-        user_cluster_ids, user_cluster_centers = compute_constrained_clusters(embeddings=user_representation, name='user_clusters', n_clusters=hyper_params["num_clusters"])
-        global_user_cluster_ids, global_user_cluster_centers = compute_constrained_clusters(embeddings=user_cluster_centers, name='global_user_clusters', n_clusters=1)
+        # Compute embedding vectors via NMF
+        user_representation, item_representation = compute_embeddings(binary_ratings_matrix, n_attrs=hyper_params["num_attrs"], max_iter=hyper_params["max_iter"], seed=args['seed'])
+        # Define user clusters and topic clusters via k-means
+        item_cluster_ids, item_cluster_centers = compute_constrained_clusters(embeddings=item_representation.T, name='item_clusters', n_clusters=hyper_params["num_clusters"], seed=args['seed'])
+        user_cluster_ids, user_cluster_centers = compute_constrained_clusters(embeddings=user_representation, name='user_clusters', n_clusters=hyper_params["num_clusters"], seed=args['seed'])
+        global_user_cluster_ids, global_user_cluster_centers = compute_constrained_clusters(embeddings=user_cluster_centers, name='global_user_clusters', n_clusters=1, seed=args['seed'])
         # Get user pairs - global user pairs, intra-cluster user pairs, inter-cluster user pairs
         global_user_pairs = create_global_user_pairs(user_cluster_ids)
+        
+        print(user_representation[:2,:5])
+        print(item_representation[:2,:5])
+        print(item_cluster_ids[:5])
+        print(user_cluster_ids[:5])
+        sys.exit()
+        
         user_item_cluster_mapping = user_topic_mapping(user_representation, item_cluster_centers)
         """
-        # print("Created user pairs via user-topic mapping")
-        # inter_cluster_user_pairs, intra_cluster_user_pairs = create_cluster_user_pairs(user_item_cluster_mapping)
+        print("Created user pairs via user-topic mapping")
+        inter_cluster_user_pairs, intra_cluster_user_pairs = create_cluster_user_pairs(user_item_cluster_mapping)
+        with open(os.path.join(output_directory, "args.txt"), "a") as log_file:
+            pprint.pprint("Created user pairs via user-topic mapping", log_file)
         """
         print("Created user pairs via user cluster IDs")
         inter_cluster_user_pairs, intra_cluster_user_pairs = create_cluster_user_pairs(user_cluster_ids)
+        with open(os.path.join(output_directory, "args.txt"), "a") as log_file:
+            pprint.pprint("Created user pairs via user cluster IDs", log_file)
         
         users_config = {
             'actual_user_profiles':user_representation, 

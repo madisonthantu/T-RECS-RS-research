@@ -68,7 +68,11 @@ def run_bubble_burster(
 
     
 """
-python run_prelim_exp.py --output_dir prelim_exp_results/test_interaction_measurement  --startup_iters 5 --sim_iters 10 --num_sims 1
+python run_prelim_exp.py --output_dir prelim_exp_results/repeated_training  --startup_iters 10 --sim_iters 90 --num_sims 1
+python run_prelim_exp.py --output_dir prelim_exp_results/repeated_training_user_cluster_mapping  --startup_iters 10 --sim_iters 90 --num_sims 1
+python run_prelim_exp.py --output_dir prelim_exp_results/repeated_training_user_cluster_mapping_10clusters  --startup_iters 10 --sim_iters 90 --num_sims 1
+
+python run_prelim_exp.py --output_dir prelim_exp_results/single_training  --startup_iters 50 --sim_iters 50 --num_sims 1
 """
 if __name__ == "__main__":
     # parse arguments
@@ -109,9 +113,9 @@ if __name__ == "__main__":
         "attention_exp":[-0.8], 
         "repeated_training":[1], 
         "num_attrs":[20], 
-        "num_clusters":[15],
+        "num_clusters":[10],
         "compute_embeddings_via_surprise":[0],
-        "create_cluster_user_pairs_by_user_topic_mapping":[1]
+        "create_cluster_user_pairs_by_user_topic_mapping":[0]
     }
 
     models = dict()
@@ -131,7 +135,7 @@ if __name__ == "__main__":
         "mean_cluster_distance_from_centroid",
         "mean_global_distance_from_centroid",
         "mean_distance_from_centroid_per_cluster",
-        "interaction_measurement",
+        "interaction_histogram",
         "rmse",
         "mean_novelty",
         "mean_slate_topic_diversity",
@@ -196,9 +200,11 @@ if __name__ == "__main__":
             # Get user pairs - global user pairs, intra-cluster user pairs, inter-cluster user pairs
             global_user_pairs = create_global_user_pairs(user_cluster_ids)
             if param_vals["create_cluster_user_pairs_by_user_topic_mapping"]:
+                print("Created user pairs via user-topic mapping")
                 user_item_cluster_mapping = user_topic_mapping(user_representation, item_cluster_centers)
                 inter_cluster_user_pairs, intra_cluster_user_pairs = create_cluster_user_pairs(user_item_cluster_mapping)
             elif not param_vals["create_cluster_user_pairs_by_user_topic_mapping"]:
+                print("Created user pairs via user cluster IDs")
                 inter_cluster_user_pairs, intra_cluster_user_pairs = create_cluster_user_pairs(user_cluster_ids)
             else:
                 raise Exception("❗️ Creating cluster user pairs failed ❗️")

@@ -68,12 +68,12 @@ random_state = np.random.seed(42)
 #     return cluster_ids, centroids
 
 
-def compute_constrained_clusters(embeddings, name, n_clusters, verbose=False):
+def compute_constrained_clusters(embeddings, name, n_clusters, seed=None, verbose=False):
     # Define topic clusters using K-Means via k-means-constrained library
     kmeans_clf = KMeansConstrained(
         n_clusters=n_clusters,
         size_min=3,
-        random_state=42
+        random_state=seed
     )
     if verbose:
         print('Calculating constrained clusters ...')
@@ -114,7 +114,7 @@ def compute_constrained_clusters(embeddings, name, n_clusters, verbose=False):
     # return user_representation, item_representation
 
 
-def compute_embeddings(binary_matrix, n_attrs, max_iter, verbose=False):
+def compute_embeddings(binary_matrix, n_attrs, max_iter, seed=None, verbose=False):
     """
     Creates embeddings for users and items based on their interactions.
     Inputs:
@@ -127,7 +127,7 @@ def compute_embeddings(binary_matrix, n_attrs, max_iter, verbose=False):
     """
     if verbose:
         print('Calculating embeddings ...')
-    nmf = NMF(n_components=n_attrs, init='random', random_state=random_state, max_iter=max_iter)
+    nmf = NMF(n_components=n_attrs, init='random', random_state=seed, max_iter=max_iter)
     user_representation = nmf.fit_transform(binary_matrix)
     item_representation = nmf.components_
     if verbose:
@@ -144,6 +144,15 @@ def load_and_process_movielens(file_path):
     binary_ratings_matrix = binary_ratings_df.pivot(index='UserID', columns='MovieID', values='Rating').fillna(0).to_numpy()
     return binary_ratings_matrix
 
+
+def load_and_process_movielens_1M(file_path):
+    ratings_df = pd.read_csv(file_path, sep="::", names=['UserID', 'MovieID', 'Rating', 'Timestamp'])
+    binary_ratings_df = ratings_df.drop(columns=['Timestamp'])
+    binary_ratings_df.loc[binary_ratings_df['Rating'] > 0, 'Rating'] = 1
+
+    # turn dataframe into matrix where each movie is a column and each user is a row
+    binary_ratings_matrix = binary_ratings_df.pivot(index='UserID', columns='MovieID', values='Rating').fillna(0).to_numpy()
+    return binary_ratings_matrix
 
 
 def user_topic_mapping(user_profiles, item_cluster_centers):
