@@ -18,7 +18,7 @@ from trecs.components import Users
 import trecs.matrix_ops as mo
 
 sys.path.insert(1, '/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research')
-from prelim_experiments.param_experiments.chaney_utils import *
+from src.chaney_utils import *
 from wrapper.models.bubble import BubbleBurster
 from wrapper.models.xQuAD import xQuAD
 from wrapper.metrics.evaluation_metrics import DiversityMetric, NoveltyMetric, TopicInteractionMeasurement, TopicInteractionSpread, UserMSEMeasurement
@@ -218,45 +218,7 @@ def save_model_results(model_key, model, result_metrics, result_diagnostics, res
     
     return result_metrics, result_diagnostics, result_environment
         
-"""
--   User pairs created via user-topic mapping, num_clusters=15
-    python run_sim_experiments_full.py  --output_dir all_sim_results/simulation1  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
-    python run_sim_experiments_full.py  --output_dir all_sim_results/simulation1  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1
--   User pairs created via user clusters, num_clusters=15
-    python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/simulation1  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
-    
-* * * * * * * * *   
- ____________
-| DONE  ...  |
- ————————————
- 
-Creating user pairs via user clusters, num_clusters=10
-    -   seed=42
-        -   [Done]  python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/10clusters/simulation1  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
-        -   [Done]  python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/10clusters/simulation1  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1
 
-Creating user pairs via user clusters, num_clusters=15 
-    -   Simulation 1
-        -   [Done]  python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/15clusters/simulation1  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
-        -   [Done]  python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/15clusters/simulation1  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1 
-    -   Simulation 2
-        -   [Done]  python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/15clusters/simulation2  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
-    *** -   [Not]   python run_sim_experiments_full.py  --output_dir all_sim_results/user_pairs_via_user_clusters/15clusters/simulation2  --seed 61 --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1
-        
-Creating user pairs via user-topic mapping num_clusters=15 
-    -   seed=42
-        -   [Not]   python run_sim_experiments_full.py  --output_dir all_sim_results/user_topic_mapping/15clusters/simulation1 --seed 42  --repeated_training 1  --startup_iters 10  --sim_iters 90  --num_sims 1
-    *** -   [Not]   python run_sim_experiments_full.py  --output_dir all_sim_results/user_topic_mapping/15clusters/simulation1 --seed 42  --repeated_training 0  --startup_iters 50  --sim_iters 50  --num_sims 1
-    
-
- ____________
-| IP    ...  |
- ————————————
- ____________
-| TO DO ...  |
- ————————————
-        
-"""
 if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser(description='running parameter experiments')
@@ -274,9 +236,6 @@ if __name__ == "__main__":
     else:
         assert(args["startup_iters"] <= (args["sim_iters"]/4)), "Incorrect ratio of startup to sim iters supplied for repeated_training=True"
         
-    # if args["data"] != 'ml_100k':
-    #     assert(args['data'] in args['output_dir']), "Data source must be included in output directory if not default data ml-100k"
-    
     if args["repeated_training"]:
         output_directory = f"{args['output_dir']}/repeated_training"
     else:
@@ -301,7 +260,6 @@ if __name__ == "__main__":
     hyper_params = {
         "drift":0.1,
         "attention_exp":-0.8,
-        # "num_clusters":10,
         "num_clusters":15,
         "num_attrs":20,
         "max_iter":1000
@@ -337,9 +295,6 @@ if __name__ == "__main__":
     
     diagnostic_metrics = set((
         "mse",
-        # "global_interaction_similarity",
-        # "inter_cluster_interaction_similarity",
-        # "intra_cluster_interaction_similarity",
         "mean_global_cosine_sim",
         "mean_intra_cluster_cosine_sim",
         "mean_inter_cluster_cosine_sim",
@@ -350,7 +305,6 @@ if __name__ == "__main__":
         "mean_novelty"
     ))
     diagnostics_vars = ["mean", "std", "median", "min", "max", "skew"]
-    # metric_diagnostics = {k: defaultdict(list) for k in diagnostics_vars}
     result_diagnostics = {k: defaultdict(list) for k in diagnostic_metrics}
     
     sim_environment_variables = [
@@ -373,18 +327,7 @@ if __name__ == "__main__":
         'timesteps':args["sim_iters"], 
         'train_between_steps':args["repeated_training"], 
     }
-    
-    # model_keys = [
-    #     "baseline_myopic", 
-    #     "repeated_items_repeat_interactions", 
-    #     "probabilistic", 
-    #     "random", 
-    #     "random_interleaving", 
-    #     "xquad_binary_0.1",
-    #     "xquad_binary_0.25",
-    #     "xquad_smooth_0.1",
-    #     "xquad_smooth_0.25"
-    # ]
+
     
     print("Running simulations...👟")
     data_path = '/Users/madisonthantu/Desktop/DREAM/data/ml-100k/u.data'
@@ -392,13 +335,6 @@ if __name__ == "__main__":
         print(f"Simulation [{sim_num+1}/{args['num_sims']}]")
         
         models = {} # temporarily stores models
-        # Get user and item representations using NMF
-        # if args['data'] == 'ml_1m':
-        #     data_path = '/Users/madisonthantu/Desktop/DREAM/data/ml-1m/ratings.dat'
-        #     binary_ratings_matrix = load_and_process_movielens_1M(file_path=data_path)
-        # elif args['data'] == 'ml_100k':
-        #     data_path = '/Users/madisonthantu/Desktop/DREAM/data/ml-100k/u.data'
-        #     binary_ratings_matrix = load_and_process_movielens(file_path=data_path)
         binary_ratings_matrix = load_and_process_movielens(file_path=data_path)
         # Compute embedding vectors via NMF
         user_representation, item_representation = compute_embeddings(binary_ratings_matrix, n_attrs=hyper_params["num_attrs"], max_iter=hyper_params["max_iter"], seed=args['seed'])

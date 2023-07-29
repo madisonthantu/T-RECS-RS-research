@@ -1,6 +1,0 @@
-{'num_sims': 1,
- 'output_dir': 'all_sim_results/1simulation',
- 'repeated_training': 0,
- 'seed': None,
- 'sim_iters': 50,
- 'startup_iters': 50}
