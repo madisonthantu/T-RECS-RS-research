@@ -1,4 +1,3 @@
-# fair-recommender-systems
 Welcome to the repository for the research that I, Madison Thantu, conducted as a part of the Distributed REsearch Apprenticeships for Master’s (DREAM) program 2022-2023 cohort, under the guidance of Dr. Richard Zemel.
 
 Below is the abstract of the final report.
