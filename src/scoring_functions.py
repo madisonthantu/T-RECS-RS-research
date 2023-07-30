@@ -9,48 +9,29 @@ import src.globals as globals
 
 from numpy.random import RandomState
 
-rs = RandomState(42)
+# rs = RandomState(42)
 
-# def cosine_sim(predicted_user_profiles, predicted_item_attributes):
-#     alpha = globals.ALPHA
+def cosine_sim(predicted_user_profiles, predicted_item_attributes):
+    alpha = globals.ALPHA
 
-#     # predicted_scores = np.dot(predicted_user_profiles, predicted_item_attributes) 
-#     predicted_scores = mo.inner_product(predicted_user_profiles, predicted_item_attributes)
-#     user_norms = norm(predicted_user_profiles, axis=1)
-#     item_norms = norm(predicted_item_attributes, axis=0)
+    # predicted_scores = np.dot(predicted_user_profiles, predicted_item_attributes) 
+    predicted_scores = mo.inner_product(predicted_user_profiles, predicted_item_attributes)
+    user_norms = norm(predicted_user_profiles, axis=1)
+    item_norms = norm(predicted_item_attributes, axis=0)
 
-#     # create a matrix that contains the outer product of user_norms and item_norms
-#     norms = np.outer(user_norms, item_norms)
-#     if (norms == 0).any():
-#         return predicted_scores
+    # create a matrix that contains the outer product of user_norms and item_norms
+    norms = np.outer(user_norms, item_norms)
+    if (norms == 0).any():
+        return predicted_scores
 
-#     cosine_similarities = predicted_scores / norms
-#     re_ranked_scores = predicted_scores - alpha * cosine_similarities
-#     # add minimum value of each row to all item scores to ensure scores are positive.
-#     # re_ranked_scores += np.abs(np.min(re_ranked_scores, axis=1))[:, np.newaxis]
-#     re_ranked_scores = np.exp(re_ranked_scores)
+    cosine_similarities = predicted_scores / norms
+    re_ranked_scores = predicted_scores - alpha * cosine_similarities
+    # add minimum value of each row to all item scores to ensure scores are positive.
+    # re_ranked_scores += np.abs(np.min(re_ranked_scores, axis=1))[:, np.newaxis]
+    re_ranked_scores = np.exp(re_ranked_scores)
 
-#     assert (re_ranked_scores >= 0).all(), "Some scores are negative."
-#     return re_ranked_scores
-
-# def cosine_sim2(predicted_user_profiles, predicted_item_attributes):
-#     """
-#     Calculate cosine similarity for each user, item pair.
-#     """
-#     alpha = globals.ALPHA
-#     # print(alpha)
-        
-#     denominator = np.outer(np.linalg.norm(predicted_user_profiles, axis=1), np.linalg.norm(predicted_item_attributes, axis=0))
-#     # cosine similarity is equal to inner product, divided by the norm of the user & item vector
-#     numerator = np.dot(predicted_user_profiles, predicted_item_attributes)
-#     cos_sim = numerator / denominator
-#     penalty = numerator - alpha*cos_sim
-    
-#     re_ranked_scores = penalty + np.abs(np.min(penalty, axis=1))[:, np.newaxis]
-
-#     assert(not np.any(re_ranked_scores < 0))
-        
-#     return re_ranked_scores
+    assert (re_ranked_scores >= 0).all(), "Some scores are negative."
+    return re_ranked_scores
 
 
 def entropy(predicted_user_profiles, predicted_item_attributes):

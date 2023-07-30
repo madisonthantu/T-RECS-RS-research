@@ -3,11 +3,6 @@ import os
 import numpy as np
 import pandas as pd
 
-# user cluster assignments, user cluster centroids
-# item cluster assignments, item cluster centroids
-# actual_user_representation_initial, actual_user_representation_final
-# user & item embeddings (via NMF)
-# user_item_cluster_mapping
 
 def load_or_create_measurements_df(model, model_name, train_timesteps, file_path):
     if os.path.exists(file_path):

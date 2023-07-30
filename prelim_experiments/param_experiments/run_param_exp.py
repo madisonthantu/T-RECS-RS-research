@@ -17,7 +17,7 @@ from trecs.metrics import MSEMeasurement, InteractionSpread, InteractionSpread, 
 from trecs.components import Users
 import trecs.matrix_ops as mo
 
-from chaney_utils import *
+from src.chaney_utils import *
 
 sys.path.insert(1, '/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research')
 from wrapper.models.bubble import BubbleBurster

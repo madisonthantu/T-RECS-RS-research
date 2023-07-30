@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-from sklearn.manifold import TSNE
 from numpy import reshape
 import seaborn as sns
 import colorcet as cc
@@ -8,6 +7,13 @@ from scipy.spatial import ConvexHull
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
+import plotly as py
+import plotly.graph_objs as go
+from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+from plotly.subplots import make_subplots
+from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
 
 
 def plot_measurements(dfs, parameters_df, ignored_train_ts=0):
@@ -140,16 +146,6 @@ def plot_clusters(df, axis, palette, previously_seen=[]):
                     alpha=1,
                     data=df).set(title="")
 
-    # Label points
-    # for ind in df.index:
-    #     axis.text(x=df['comp-1'][ind],
-    #               y=df['comp-2'][ind],
-    #               s=df['y'][ind],
-    #               color='black',
-    #               fontsize=6,
-    #               horizontalalignment='center',
-    #               verticalalignment='center')
-
     # Create hulls
     for i in hue_order:
         points = df[df.y == i][['comp-1', 'comp-2']].values
@@ -176,7 +172,30 @@ def plot_clusters(df, axis, palette, previously_seen=[]):
             axis.fill(interp_x, interp_y, '--', c=palette[i], alpha=0.2)
 
 
-def plot_tsne(df, perplexity, n_clusters):
+# def plot_tsne(df, perplexity, n_clusters):
+#     """
+#     Plots tsne with convex hulls.
+    
+#     Parameters
+#     ----------
+#     df : pd.DataFrame
+#         Dataframe with columns 'comp-1', 'comp-2' and 'y'
+#     perplexity : int
+#         Perplexity for tsne
+#     """
+
+#     # plot tsne
+#     fig, axs = plt.subplots(1, 1, figsize=(15, 5))
+
+#     palette = sns.color_palette(cc.glasbey, n_colors=n_clusters)
+
+#     plot_clusters(df, axs, palette)
+
+#     plt.title(f'TSNE with perplexity={perplexity}')
+#     plt.suptitle(f'Opaque points are items. Others are users.')
+#     plt.show()
+
+def plot_tsne(df, perplexity, n_clusters, title):
     """
     Plots tsne with convex hulls.
     
@@ -187,41 +206,63 @@ def plot_tsne(df, perplexity, n_clusters):
     perplexity : int
         Perplexity for tsne
     """
-
     # plot tsne
     fig, axs = plt.subplots(1, 1, figsize=(15, 5))
-
     palette = sns.color_palette(cc.glasbey, n_colors=n_clusters)
-
     plot_clusters(df, axs, palette)
-
-    plt.title(f'TSNE with perplexity={perplexity}')
-    plt.suptitle(f'Opaque points are items. Others are users.')
-    plt.show()
+    plt.legend(prop={"size": 12}, loc ="upper right")
+    return fig
 
 
-def plot_tsne_comparison(df1, df2, n_clusters):
+# def plot_tsne_comparison(df1, df2, n_clusters):
+#     """
+#     Plots two tsne plots (before and after simulation) with convex hulls.
+    
+#     Parameters
+#     ----------
+#     df : pd.DataFrame
+#         Dataframe with columns 'comp-1', 'comp-2' and 'y'
+#     perplexity : int
+#         Perplexity for tsne
+#     """
+#     fig, axs = plt.subplots(1, 2, figsize=(20, 10))
+
+#     palette = sns.color_palette(cc.glasbey, n_colors=n_clusters)
+
+#     plot_clusters(df1, axs[0], palette)
+#     axs[0].set_title('Before Simulation')
+#     plot_clusters(df2, axs[1], palette, previously_seen=df1.y.unique())
+#     axs[1].set_title('After Simulation')
+
+#     plt.suptitle(f'TSNE')
+#     plt.show()
+
+# """
+# ***************************************
+# """
+def plot_tsne_comparison(dfs, n_clusters, titles):
     """
     Plots two tsne plots (before and after simulation) with convex hulls.
-    
     Parameters
     ----------
     df : pd.DataFrame
-        Dataframe with columns 'comp-1', 'comp-2' and 'y'
+    Dataframe with columns 'comp-1', 'comp-2' and 'y'
     perplexity : int
-        Perplexity for tsne
+    Perplexity for tsne
     """
-    fig, axs = plt.subplots(1, 2, figsize=(20, 10))
-
+    fig, axs = plt.subplots(1, 2, figsize=(15, 5))
     palette = sns.color_palette(cc.glasbey, n_colors=n_clusters)
+    plot_clusters(dfs[0], axs[0], palette)
+    axs[0].set_title(titles[0])
+    plot_clusters(dfs[1], axs[1], palette, previously_seen=dfs[1].y.unique())
+    axs[1].set_title(titles[1])
+    for i, ax in enumerate(axs):
+        ax.legend(prop={"size": 13}, loc ="upper left") #fontsize='small')#
+        ax.set_title(f"{titles[i]}", fontsize=18)
+    axs[0].legend(prop={"size": 13}, loc ="upper left") #fontsize='small')#
+    axs[1].legend(prop={"size": 13}, loc ="upper right") #fontsize='small')#        
+    return fig
 
-    plot_clusters(df1, axs[0], palette)
-    axs[0].set_title('Before Simulation')
-    plot_clusters(df2, axs[1], palette, previously_seen=df1.y.unique())
-    axs[1].set_title('After Simulation')
-
-    plt.suptitle(f'TSNE')
-    plt.show()
     
     
 def plot_item_popularity_distribution(interaction_matrix, y_label="No. interactions", x_label="Item No.", title="Item interaction distribution", ax=None):
@@ -239,3 +280,67 @@ def graph_metrics_by_axis(ax, results, metric_key, metric_key_map):
     ax.set_ylabel(metric_key_map[metric_key])
     ax.set_xlabel("Timestep")
     return ax
+
+
+def plot_pca_3d(user_representation_df, n_clusters, title="Visualizing Clusters in Three Dimensions Using PCA"):
+    pca = PCA(n_components=3)
+    PCs_df = pd.DataFrame(pca.fit_transform(user_representation_df.drop(["Cluster"], axis=1)))
+    PCs_df.columns = ["PC1_3d", "PC2_3d", "PC3_3d"]
+    
+    plotX = pd.concat([user_representation_df, PCs_df], axis=1, join='inner')
+    plotX["dummy"] = 0
+    cluster_list = []
+    for i in range(n_clusters):
+        cluster_list.append(('clust_'+str(i), plotX[plotX["Cluster"] == i]))
+    data = []
+    for i in range(n_clusters):
+        cluster = cluster_list[i]
+        data.append(go.Scatter3d(
+                        x = cluster[1]["PC1_3d"],
+                        y = cluster[1]["PC2_3d"],
+                        z = cluster[1]["PC3_3d"],
+                        mode = "markers",
+                        name = cluster[0],
+                        text = None))
+
+    title = title
+
+    layout = dict(title = title,
+                xaxis= dict(title= 'PC1',ticklen= 5,zeroline= False),
+                yaxis= dict(title= 'PC2',ticklen= 5,zeroline= False)
+                )
+
+    fig = dict(data = data, layout = layout)
+    return fig
+
+
+def plot_pca_3d_subplots(user_representation_df, n_clusters, title="Visualizing Clusters in Three Dimensions Using PCA"):
+    pca = PCA(n_components=3)
+    PCs_df = pd.DataFrame(pca.fit_transform(user_representation_df.drop(["Cluster"], axis=1)))
+    PCs_df.columns = ["PC1_3d", "PC2_3d", "PC3_3d"]
+    
+    plotX = pd.concat([user_representation_df, PCs_df], axis=1, join='inner')
+    plotX["dummy"] = 0
+    cluster_list = []
+    for i in range(n_clusters):
+        cluster_list.append(('clust_'+str(i), plotX[plotX["Cluster"] == i]))
+    data = []
+    for i in range(n_clusters):
+        cluster = cluster_list[i]
+        data.append(go.Scatter3d(
+                        x = cluster[1]["PC1_3d"],
+                        y = cluster[1]["PC2_3d"],
+                        z = cluster[1]["PC3_3d"],
+                        mode = "markers",
+                        # name = cluster[0],
+                        text = None))
+
+    title = title
+
+    layout = go.Layout(title = title,
+                xaxis= dict(title= 'PC1',ticklen= 5,zeroline= False),
+                yaxis= dict(title= 'PC2',ticklen= 5,zeroline= False)
+                )
+
+    fig = go.Figure(data = data, layout = layout)
+    return fig

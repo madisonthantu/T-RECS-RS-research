@@ -1,7 +1,0 @@
-{'max_iter': 1000,
- 'num_epochs': 50,
- 'num_sims': 1,
- 'output_dir': 'prelim_exp_results/repeated_training',
- 'seed': None,
- 'sim_iters': 90,
- 'startup_iters': 10}

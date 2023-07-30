@@ -20,7 +20,7 @@ import trecs.matrix_ops as mo
 from representation_experiments.surprise_utils import compute_embeddings_surprise
 
 sys.path.insert(1, '/Users/madisonthantu/Desktop/DREAM/T-RECS-RS-research')
-from prelim_experiments.param_experiments.chaney_utils import *
+from src.chaney_utils import *
 from wrapper.models.bubble import BubbleBurster
 from wrapper.metrics.evaluation_metrics import DiversityMetric, NoveltyMetric, TopicInteractionMeasurement, TopicInteractionSpread, UserMSEMeasurement
 from wrapper.metrics.clustering_metrics import MeanCosineSim, MeanDistanceFromCentroid, MeanCosineSimPerCluster, MeanDistanceFromCentroidPerCluster

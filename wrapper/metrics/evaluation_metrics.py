@@ -1,14 +1,43 @@
 import sys
-# caution: path[0] is reserved for script path (or '' in REPL)
 sys.path.insert(1, '/Users/madisonthantu/Desktop/DREAM/t-recs')
 from trecs.metrics import Measurement, Diagnostics
 import trecs.matrix_ops as mo
 from math import comb
 
-# import math
 import numpy as np
 from itertools import combinations
 
+
+class NoveltyMetric(Measurement, Diagnostics):
+    def __init__(self, name="mean_novelty", verbose=False, diagnostics=False):
+        self.diagnostics = diagnostics
+        Measurement.__init__(self, name, verbose)
+        if diagnostics:
+            Diagnostics.__init__(self)
+        
+    def measure(self, recommender):
+        """
+        https://www.researchgate.net/profile/Ludovik-Coba/publication/335376707_Counteracting_the_filter_bubble_in_recommender_systems_Novelty-aware_matrix_factorization/links/5d653cbea6fdccc32cd497fb/Counteracting-the-filter-bubble-in-recommender-systems-Novelty-aware-matrix-factorization.pdf
+        Counteracting the Filter Bubble in Recommender Systems: Novelty-aware Matrix Factorization
+
+        Parameters
+        ------- -----
+            recommender: :class:`~models.recommender.BaseRecommender`
+                Model that inherits from
+                :class:`~models.recommender.BaseRecommender`.
+        """
+        if recommender.interactions.size == 0 or np.sum(recommender.predicted_scores.value) == 0:
+            self.observe(None) # no interactions yet
+            return
+                
+        # calculate self information of each item (add eps to avoid log(0) errors)
+        item_counts = recommender.item_count + 0.1
+        novelty = (-1) * np.log(item_counts / recommender.num_users)
+        
+        self.observe(np.mean(novelty))
+        if self.diagnostics:
+            self.diagnose(novelty)
+            
 # class NoveltyMetric(Measurement):
 #     def __init__(self, name="novelty_metric", verbose=False):
 #         Measurement.__init__(self, name, verbose)
@@ -51,36 +80,6 @@ from itertools import combinations
 #         # form sum over all possible items/actions
 #         item_novelty = np.sum(item_novelties)
 #         self.observe(item_novelty)
-
-class NoveltyMetric(Measurement, Diagnostics):
-    def __init__(self, name="mean_novelty", verbose=False, diagnostics=False):
-        self.diagnostics = diagnostics
-        Measurement.__init__(self, name, verbose)
-        if diagnostics:
-            Diagnostics.__init__(self)
-        
-    def measure(self, recommender):
-        """
-        https://www.researchgate.net/profile/Ludovik-Coba/publication/335376707_Counteracting_the_filter_bubble_in_recommender_systems_Novelty-aware_matrix_factorization/links/5d653cbea6fdccc32cd497fb/Counteracting-the-filter-bubble-in-recommender-systems-Novelty-aware-matrix-factorization.pdf
-        Counteracting the Filter Bubble in Recommender Systems: Novelty-aware Matrix Factorization
-
-        Parameters
-        ------- -----
-            recommender: :class:`~models.recommender.BaseRecommender`
-                Model that inherits from
-                :class:`~models.recommender.BaseRecommender`.
-        """
-        if recommender.interactions.size == 0 or np.sum(recommender.predicted_scores.value) == 0:
-            self.observe(None) # no interactions yet
-            return
-                
-        # calculate self information of each item (add eps to avoid log(0) errors)
-        item_counts = recommender.item_count + 0.1
-        novelty = (-1) * np.log(item_counts / recommender.num_users)
-        
-        self.observe(np.mean(novelty))
-        if self.diagnostics:
-            self.diagnose(novelty)
         
 
 class SerendipityMetric(Measurement):
