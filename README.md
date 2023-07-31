@@ -1,6 +1,6 @@
 Welcome to the repository for the research that I, Madison Thantu, conducted as a part of the Distributed REsearch Apprenticeships for Master’s (DREAM) program 2022-2023 cohort, under the guidance of Dr. Richard Zemel.
 
-Below is the abstract of the final report.
+The link to my final report documenting this research and my findings can be found here, [Bubble Bursting Implementations and Dynamics in Recommender Systems](https://madisonthantu.github.io/), and below is the abstract of the final report.
 
 ### Abstract
 
